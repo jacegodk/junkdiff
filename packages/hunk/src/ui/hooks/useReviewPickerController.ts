@@ -6,6 +6,7 @@ import { resolveCanonicalPath } from "../../core/run/paths";
 import type { ReloadedSessionResult, ReloadSessionOptions } from "../../session/types";
 import {
   basePickerItems,
+  basePickerSkipNotice,
   reviewPickerApplies,
   reviewPickerReloadInput,
   worktreePickerItems,
@@ -47,33 +48,43 @@ export function useReviewPickerController({
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  /**
+   * Reload into `worktree` against `base`. A soft reload (`resetApp: false`) keeps this App
+   * mounted, so the notice explaining a skipped base step survives the switch.
+   */
   const finish = useCallback(
-    (worktree: string, base: string | null) => {
+    (worktree: string, base: string | null, notice: string | null) => {
       setState(null);
       if (!reviewPickerApplies(bootstrap.input)) return;
       onReloadSession(reviewPickerReloadInput(bootstrap.input, base), {
-        resetApp: true,
+        resetApp: false,
         reason: "manual",
         sourcePath: worktree,
         allowSiblingWorktree: worktree !== root,
-      }).catch((error: unknown) => {
-        onTransientNotice(
-          `Could not open ${worktree}: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
+      }).then(
+        () => {
+          if (notice) onTransientNotice(notice);
+        },
+        (error: unknown) => {
+          onTransientNotice(
+            `Could not open ${worktree}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        },
+      );
     },
     [bootstrap.input, onReloadSession, onTransientNotice, root],
   );
 
-  /** Second step for `worktree`: offer the bases, or finish at once when there is nothing to choose. */
+  /** Second step for `worktree`: offer the bases, or finish at once (saying why) when there is nothing to choose. */
   const openBaseStep = useCallback(
     (worktree: string): boolean => {
-      const items = basePickerItems(resolveGitReviewBases(worktree));
+      const bases = resolveGitReviewBases(worktree);
+      const items = basePickerItems(bases);
       if (items.length > 1) {
         setState({ step: "base", items, selectedIndex: 0, worktree });
         return true;
       }
-      finish(worktree, items[0]?.base ?? null);
+      finish(worktree, items[0]?.base ?? null, basePickerSkipNotice(bases));
       return false;
     },
     [finish],
@@ -134,7 +145,7 @@ export function useReviewPickerController({
         openBaseStep(item.id);
         return;
       }
-      finish(current.worktree, item.base ?? null);
+      finish(current.worktree, item.base ?? null, null);
     },
     [finish, openBaseStep],
   );

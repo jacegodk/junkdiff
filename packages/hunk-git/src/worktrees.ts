@@ -13,11 +13,15 @@ export interface GitWorktree {
 
 /** The bases the picker can compare a worktree against. */
 export interface GitReviewBases {
+  /** Checked-out branch, or null when HEAD is detached. */
+  branch: string | null;
   /** Default branch name (from `origin/HEAD`, else the first of develop/master/main that exists), or null. */
   defaultBranch: string | null;
   /** Merge-base of HEAD with the default branch: the whole branch, like a merge request. */
   defaultBase: string | null;
-  /** Remote-tracking branch of HEAD when it exists and differs from HEAD: only the unpushed part. */
+  /** Remote-tracking branch of HEAD, whether or not it differs from HEAD. */
+  upstreamRef: string | null;
+  /** `upstreamRef` when it differs from HEAD: only the unpushed part; null when in sync or untracked. */
   upstream: string | null;
 }
 
@@ -81,6 +85,7 @@ export function resolveGitDefaultBranch(cwd: string): string | null {
  * preferred, a local default may be stale), and the upstream ref when it differs from HEAD.
  */
 export function resolveGitReviewBases(cwd: string): GitReviewBases {
+  const branch = git(cwd, "symbolic-ref", "--short", "-q", "HEAD");
   const defaultBranch = resolveGitDefaultBranch(cwd);
   let defaultBase: string | null = null;
   if (defaultBranch) {
@@ -94,5 +99,5 @@ export function resolveGitReviewBases(cwd: string): GitReviewBases {
     upstreamRef && git(cwd, "rev-parse", upstreamRef) !== git(cwd, "rev-parse", "HEAD")
       ? upstreamRef
       : null;
-  return { defaultBranch, defaultBase, upstream };
+  return { branch, defaultBranch, defaultBase, upstreamRef, upstream };
 }

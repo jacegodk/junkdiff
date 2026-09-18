@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { CliInput } from "../core/run/commandInputs";
 import {
   basePickerItems,
+  basePickerSkipNotice,
   formatAge,
   reviewPickerApplies,
   reviewPickerReloadInput,
@@ -60,9 +61,16 @@ describe("worktreePickerItems", () => {
 
 describe("basePickerItems", () => {
   test("upstream row first when the upstream differs, then the whole-branch row when a default base exists", () => {
-    expect(basePickerItems({ defaultBranch: null, defaultBase: null, upstream: null })).toEqual([]);
+    const none = {
+      branch: "feat",
+      defaultBranch: null,
+      defaultBase: null,
+      upstreamRef: null,
+      upstream: null,
+    };
+    expect(basePickerItems(none)).toEqual([]);
     expect(
-      basePickerItems({ defaultBranch: "main", defaultBase: "abcdef0123456789", upstream: null }),
+      basePickerItems({ ...none, defaultBranch: "main", defaultBase: "abcdef0123456789" }),
     ).toEqual([
       {
         id: "default",
@@ -73,14 +81,52 @@ describe("basePickerItems", () => {
     ]);
     expect(
       basePickerItems({
+        ...none,
         defaultBranch: "main",
         defaultBase: "abcdef0123456789",
+        upstreamRef: "origin/feat",
         upstream: "origin/feat",
       }).map((item) => [item.id, item.base]),
     ).toEqual([
       ["upstream", "origin/feat"],
       ["default", "abcdef0123456789"],
     ]);
+  });
+});
+
+describe("basePickerSkipNotice", () => {
+  const base = {
+    branch: "feat",
+    defaultBranch: "main",
+    defaultBase: "abc",
+    upstreamRef: null,
+    upstream: null,
+  };
+  test("explains a skipped base step; null when both choices exist", () => {
+    expect(
+      basePickerSkipNotice({ ...base, upstreamRef: "origin/feat", upstream: "origin/feat" }),
+    ).toBeNull();
+    expect(basePickerSkipNotice({ ...base, upstreamRef: "origin/feat" })).toBe(
+      "feat is in sync with origin/feat: showing the whole branch vs main",
+    );
+    expect(basePickerSkipNotice(base)).toBe(
+      "feat has no upstream: showing the whole branch vs main",
+    );
+    expect(basePickerSkipNotice({ ...base, defaultBranch: null, defaultBase: null })).toBe(
+      "feat has no upstream: showing the working tree",
+    );
+    expect(
+      basePickerSkipNotice({
+        ...base,
+        defaultBranch: null,
+        defaultBase: null,
+        upstreamRef: "origin/feat",
+        upstream: "origin/feat",
+      }),
+    ).toBe("feat has no default branch to compare with: showing unpushed vs origin/feat");
+    expect(basePickerSkipNotice({ ...base, branch: null })).toBe(
+      "detached HEAD has no upstream: showing the whole branch vs main",
+    );
   });
 });
 

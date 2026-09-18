@@ -60,8 +60,10 @@ describe("resolveGitReviewBases", () => {
     const root = git(clone, "rev-parse", "HEAD");
     // On main, in sync with origin: base is HEAD itself, no upstream choice.
     expect(resolveGitReviewBases(clone)).toEqual({
+      branch: "main",
       defaultBranch: "main",
       defaultBase: root,
+      upstreamRef: "origin/main",
       upstream: null,
     });
 
@@ -69,17 +71,24 @@ describe("resolveGitReviewBases", () => {
     commit(clone, "b.txt", "b\n", "feat 1", 1_700_000_100);
     // No upstream yet: whole-branch base is the fork point.
     expect(resolveGitReviewBases(clone)).toEqual({
+      branch: "feat",
       defaultBranch: "main",
       defaultBase: root,
+      upstreamRef: null,
       upstream: null,
     });
 
     git(clone, "push", "-q", "-u", "origin", "feat");
-    expect(resolveGitReviewBases(clone).upstream).toBeNull();
+    expect(resolveGitReviewBases(clone)).toMatchObject({
+      upstreamRef: "origin/feat",
+      upstream: null,
+    });
     commit(clone, "c.txt", "c\n", "feat 2", 1_700_000_200);
     expect(resolveGitReviewBases(clone)).toEqual({
+      branch: "feat",
       defaultBranch: "main",
       defaultBase: root,
+      upstreamRef: "origin/feat",
       upstream: "origin/feat",
     });
   });
@@ -88,8 +97,10 @@ describe("resolveGitReviewBases", () => {
     const dir = mkdtempSync(join(tmpdir(), "hunk-worktrees-nogit-"));
     tempDirs.push(dir);
     expect(resolveGitReviewBases(dir)).toEqual({
+      branch: null,
       defaultBranch: null,
       defaultBase: null,
+      upstreamRef: null,
       upstream: null,
     });
     expect(listGitWorktrees(dir)).toEqual([]);

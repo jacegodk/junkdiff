@@ -65,6 +65,22 @@ export function basePickerItems(bases: GitReviewBases): ReviewPickerItem[] {
   return items;
 }
 
+/**
+ * What to tell the user when the base step is skipped because it has one answer: why there was
+ * no "unpushed only" choice, and what is shown instead. Null when a dialog was shown.
+ */
+export function basePickerSkipNotice(bases: GitReviewBases): string | null {
+  if (basePickerItems(bases).length > 1) return null;
+  const branch = bases.branch ?? "detached HEAD";
+  if (bases.upstream)
+    return `${branch} has no default branch to compare with: showing unpushed vs ${bases.upstream}`;
+  const shown = bases.defaultBase
+    ? `showing the whole branch vs ${bases.defaultBranch}`
+    : "showing the working tree";
+  if (bases.upstreamRef) return `${branch} is in sync with ${bases.upstreamRef}: ${shown}`;
+  return `${branch} has no upstream: ${shown}`;
+}
+
 /** The working-tree review of `input` against `base`, or the plain working tree when base is null. */
 export function reviewPickerReloadInput(input: VcsDiffCommandInput, base: string | null): CliInput {
   const {
