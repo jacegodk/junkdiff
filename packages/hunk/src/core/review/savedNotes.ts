@@ -24,7 +24,15 @@ export interface SavedNote {
   body: string;
   /** ISO time of the last save; entries older than SAVED_NOTES_TTL_MS are dropped on write. */
   at: string;
+  /**
+   * Set by whoever acted on the note (an agent editing the file, or the review). A handled note
+   * is shown with a "handled" marker, or, with `delete_handled_notes`, deleted on the next open.
+   */
+  handled?: boolean;
 }
+
+/** The tag a restored handled note carries in the review, and the marker its card shows. */
+export const HANDLED_NOTE_TAG = "handled";
 
 export interface SavedNotesDocument {
   version: 1;
@@ -143,6 +151,7 @@ export function savedNoteFromStored(
     line: at.line,
     body: note.summary,
     at: note.updatedAt ?? note.createdAt ?? new Date().toISOString(),
+    ...(note.tags?.includes(HANDLED_NOTE_TAG) ? { handled: true } : {}),
   };
 }
 
@@ -196,6 +205,7 @@ export function restoreSavedNotes(
           author: "user",
           createdAt: note.at,
           editable: true,
+          ...(note.handled ? { tags: [HANDLED_NOTE_TAG] } : {}),
         },
         resolution: parent?.resolution ?? "active",
       });
@@ -220,7 +230,8 @@ export function diffSavedNotes(
       old.filePath !== note.filePath ||
       old.side !== note.side ||
       old.line !== note.line ||
-      old.parentId !== note.parentId
+      old.parentId !== note.parentId ||
+      (old.handled ?? false) !== (note.handled ?? false)
     ) {
       changes.push({ upsert: note });
     }

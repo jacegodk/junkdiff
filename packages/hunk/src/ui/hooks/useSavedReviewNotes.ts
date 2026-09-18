@@ -19,6 +19,8 @@ export interface UseSavedReviewNotesOptions {
   identity: { worktree: string; branch: string } | null;
   /** Bumps when the store's document was rebuilt (a reload), so a restore can re-key notes. */
   documentGeneration: string;
+  /** `delete_handled_notes`: drop notes flagged handled from the file on open instead of restoring them. */
+  deleteHandledNotes?: boolean;
   onNotice: (text: string) => void;
   log?: (message: string) => void;
 }
@@ -33,6 +35,7 @@ export function useSavedReviewNotes({
   store,
   identity,
   documentGeneration,
+  deleteHandledNotes = false,
   onNotice,
   log = () => {},
 }: UseSavedReviewNotesOptions) {
@@ -49,7 +52,28 @@ export function useSavedReviewNotes({
     if (persistedRef.current?.key !== key) {
       // A new identity: the file is the truth, whatever the store held for the previous one.
       const saved = readSavedNotes(filePath, log);
-      const restored = restoreSavedNotes(saved, document);
+      const handled = deleteHandledNotes ? saved.filter((note) => note.handled) : [];
+      if (handled.length > 0) {
+        try {
+          mergeSavedNotes(
+            filePath,
+            identity.worktree,
+            identity.branch,
+            handled.map((note) => ({ remove: note.id })),
+            new Date(),
+            log,
+          );
+        } catch (error) {
+          log(
+            `junk: could not delete handled notes in ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+      const handledIds = new Set(handled.map((note) => note.id));
+      const restored = restoreSavedNotes(
+        saved.filter((note) => !handledIds.has(note.id)),
+        document,
+      );
       store.dispatch({ type: "notes/replace-user", notes: restored });
       persistedRef.current = {
         key,
@@ -57,9 +81,14 @@ export function useSavedReviewNotes({
           .map((entry) => savedNoteFromStored(entry, store.getSnapshot().document))
           .filter((note): note is SavedNote => note !== null),
       };
+      const parts: string[] = [];
       if (restored.length > 0) {
-        onNotice(`Restored ${restored.length} saved note${restored.length === 1 ? "" : "s"}`);
+        parts.push(`restored ${restored.length} saved note${restored.length === 1 ? "" : "s"}`);
       }
+      if (handled.length > 0) {
+        parts.push(`deleted ${handled.length} handled note${handled.length === 1 ? "" : "s"}`);
+      }
+      if (parts.length > 0) onNotice(parts.join(", ").replace(/^./, (c) => c.toUpperCase()));
     }
 
     const persist = () => {
@@ -85,5 +114,5 @@ export function useSavedReviewNotes({
     };
     persist();
     return store.subscribe(persist);
-  }, [documentGeneration, identity, log, onNotice, stateDir, store]);
+  }, [deleteHandledNotes, documentGeneration, identity, log, onNotice, stateDir, store]);
 }

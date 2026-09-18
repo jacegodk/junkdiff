@@ -460,6 +460,15 @@ export const CONFIG_REFERENCE_OPTIONS: readonly ConfigReferenceOption[] = [
     description: "Animate panes as they open and close.",
   },
   {
+    key: "delete_handled_notes",
+    property: "deleteHandledNotes",
+    type: "boolean",
+    accepted: "`true` or `false`",
+    runtimeDefault: false,
+    description:
+      "junk: delete saved review notes flagged `handled` in their notes file when the worktree and branch are opened, instead of restoring them.",
+  },
+  {
     key: "sidebar",
     property: "sidebar",
     type: "string or boolean",
@@ -1086,6 +1095,7 @@ function mergeOptions(base: CommonOptions, overrides: CommonOptions): CommonOpti
     hunkHeaders: overrides.hunkHeaders ?? base.hunkHeaders,
     menuBar: overrides.menuBar ?? base.menuBar,
     animations: overrides.animations ?? base.animations,
+    deleteHandledNotes: overrides.deleteHandledNotes ?? base.deleteHandledNotes,
     sidebar: overrides.sidebar ?? base.sidebar,
     agentNotes: overrides.agentNotes ?? base.agentNotes,
     copyDecorations: overrides.copyDecorations ?? base.copyDecorations,
@@ -1368,6 +1378,7 @@ export function resolveConfiguredCliInput(
     hunkHeaders: resolvedOptions.hunkHeaders ?? DEFAULT_VIEW_PREFERENCES.showHunkHeaders,
     menuBar: resolvedOptions.menuBar ?? DEFAULT_VIEW_PREFERENCES.showMenuBar,
     animations: resolvedOptions.animations ?? true,
+    deleteHandledNotes: resolvedOptions.deleteHandledNotes ?? false,
     sidebar: resolvedOptions.sidebar ?? "auto",
     agentNotes: resolvedOptions.agentNotes ?? DEFAULT_VIEW_PREFERENCES.showAgentNotes,
     copyDecorations: resolvedOptions.copyDecorations ?? DEFAULT_VIEW_PREFERENCES.copyDecorations,

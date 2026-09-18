@@ -171,6 +171,16 @@ Animate panes as they open and close.
 
 ---
 
+**`delete_handled_notes`**
+
+junk: delete saved review notes flagged `handled` in their notes file when the worktree and branch are opened, instead of restoring them.
+
+- **Type:** boolean
+- **Accepted:** `true` or `false`
+- **Built-in default:** `false`
+
+---
+
 **`sidebar`**
 
 Show the files pane if it fits, keep it closed, or let the responsive layout decide. Pager sessions always open with the files pane closed.

@@ -143,6 +143,19 @@ describe("savedNoteFromStored / restoreSavedNotes", () => {
     expect(restored!.resolution).toBe("active");
   });
 
+  test("a handled flag survives the round trip as the handled tag, and counts as a change", () => {
+    const [restored] = restoreSavedNotes([saved("user:1", { handled: true })], document);
+    expect(restored!.note.tags).toEqual(["handled"]);
+    const back = savedNoteFromStored(restored!, document);
+    expect(back?.handled).toBe(true);
+    const [plain] = restoreSavedNotes([saved("user:2")], document);
+    expect(plain!.note.tags).toBeUndefined();
+    expect(savedNoteFromStored(plain!, document)?.handled).toBeUndefined();
+    expect(diffSavedNotes([saved("a")], [saved("a", { handled: true })])).toEqual([
+      { upsert: saved("a", { handled: true }) },
+    ]);
+  });
+
   test("a note whose file is absent from the document is neither saved nor restored", () => {
     const stored = createTestStoredNote({ id: "user:9", fileKey: "file:gone", source: "user" });
     expect(savedNoteFromStored(stored, document)).toBeNull();

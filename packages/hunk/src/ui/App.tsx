@@ -301,6 +301,7 @@ export function App({
     store: review.store,
     identity: savedNotesIdentity,
     documentGeneration: bootstrap.changeset.id,
+    deleteHandledNotes: bootstrap.input.options.deleteHandledNotes ?? false,
     onNotice: showSessionNotice,
   });
   // Keep an incompatible-daemon notice until the broker reconnects; timed notices must not clear it.

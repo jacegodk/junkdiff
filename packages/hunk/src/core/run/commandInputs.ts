@@ -58,6 +58,8 @@ export interface CommonOptions {
   hunkHeaders?: boolean;
   menuBar?: boolean;
   animations?: boolean;
+  /** junk: drop saved review notes flagged `handled` when the worktree and branch are opened. */
+  deleteHandledNotes?: boolean;
   sidebar?: SidebarVisibility;
   agentNotes?: boolean;
   copyDecorations?: boolean;

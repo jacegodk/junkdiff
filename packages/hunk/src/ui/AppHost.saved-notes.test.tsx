@@ -120,6 +120,87 @@ describe("saved review notes", () => {
     }
   });
 
+  test("a handled note is shown with a marker, or deleted on open with delete_handled_notes", async () => {
+    const dir = createRepo();
+    const notesPath = resolveSavedNotesPath(join(stateHome, "hunk"), dir, "main");
+    const writeNotes = () => {
+      mkdirSync(dirname(notesPath), { recursive: true });
+      writeFileSync(
+        notesPath,
+        JSON.stringify({
+          version: 1,
+          worktree: dir,
+          branch: "main",
+          notes: {
+            "user:1": {
+              id: "user:1",
+              filePath: "alpha.ts",
+              hunkIndex: 0,
+              side: "new",
+              line: 2,
+              body: "still open",
+              at: new Date().toISOString(),
+            },
+            "user:2": {
+              id: "user:2",
+              filePath: "alpha.ts",
+              hunkIndex: 0,
+              side: "new",
+              line: 1,
+              body: "already handled",
+              at: new Date().toISOString(),
+              handled: true,
+            },
+          },
+        }),
+      );
+    };
+
+    // Default: both come back, the handled one says so in its title.
+    writeNotes();
+    let bootstrap = await loadAppBootstrap(
+      { kind: "vcs", staged: false, options: { mode: "unified", excludeUntracked: true } },
+      { cwd: dir, vcsCatalog: getBundledVcsCatalog() },
+    );
+    let setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 120, height: 30 });
+    try {
+      const frame = await waitForFrame(setup, (f) => f.includes("already handled"));
+      expect(frame).toContain("still open");
+      expect(frame).toMatch(/Your note · now · handled/);
+      expect(Object.keys(JSON.parse(readFileSync(notesPath, "utf8")).notes).sort()).toEqual([
+        "user:1",
+        "user:2",
+      ]);
+    } finally {
+      await act(async () => {
+        setup.renderer.destroy();
+      });
+    }
+
+    // With the option: the handled note is deleted from the file and not shown.
+    writeNotes();
+    bootstrap = await loadAppBootstrap(
+      {
+        kind: "vcs",
+        staged: false,
+        options: { mode: "unified", excludeUntracked: true, deleteHandledNotes: true },
+      },
+      { cwd: dir, vcsCatalog: getBundledVcsCatalog() },
+    );
+    setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 120, height: 30 });
+    try {
+      const frame = await waitForFrame(setup, (f) => f.includes("still open"));
+      expect(frame).not.toContain("already handled");
+      expect(frame).toContain("deleted 1 handled note");
+      expect(Object.keys(JSON.parse(readFileSync(notesPath, "utf8")).notes)).toEqual(["user:1"]);
+    } finally {
+      await act(async () => {
+        setup.renderer.destroy();
+      });
+      await removeTestDirectory(dir);
+    }
+  });
+
   test("notes saved earlier come back on the next open of the same worktree and branch", async () => {
     const dir = createRepo();
     const notesPath = resolveSavedNotesPath(join(stateHome, "hunk"), dir, "main");
