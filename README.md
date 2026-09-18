@@ -1,3 +1,9 @@
+# junkdiff
+
+Personal fork of [hunk](https://github.com/modem-dev/hunk) by Jens Andersen. The binary is `junk`; it shares hunk's config, state and extensions (`~/.config/hunk`, `~/.local/state/hunk`). Branch `main` mirrors upstream, branch `junk` carries the patches. Upstream README follows.
+
+---
+
 # hunk
 
 Hunk is a review-first terminal diff viewer for agent-authored changesets, built on [OpenTUI](https://github.com/anomalyco/opentui) and [Pierre diffs](https://www.npmjs.com/package/@pierre/diffs).

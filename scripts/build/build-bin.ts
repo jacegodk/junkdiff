@@ -50,7 +50,7 @@ export function bunCompilerCacheEnvironment(repoRoot: string, runtimeVersion: st
 if (import.meta.main) {
   const repoRoot = REPO_ROOT;
   const distDir = path.join(repoRoot, "dist");
-  const binaryName = process.platform === "win32" ? "hunk.exe" : "hunk";
+  const binaryName = process.platform === "win32" ? "junk.exe" : "junk";
   const outfile = path.join(distDir, binaryName);
   const legacyOutfile = path.join(distDir, process.platform === "win32" ? "otdiff.exe" : "otdiff");
 

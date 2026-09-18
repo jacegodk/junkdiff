@@ -1,7 +1,7 @@
 {
   "name": "hunkdiff",
   "version": "0.22.0",
-  "description": "Desktop-inspired terminal diff viewer for understanding agent-authored changesets.",
+  "description": "Personal fork of hunk (hunkdiff): desktop-inspired terminal diff viewer for understanding agent-authored changesets.",
   "keywords": [
     "ai",
     "code-review",
@@ -20,8 +20,8 @@
     "url": "git+https://github.com/modem-dev/hunk.git"
   },
   "bin": {
-    "hunk": "./bin/hunk.cjs",
-    "hunkdiff": "./bin/hunk.cjs"
+    "junk": "./bin/hunk.cjs",
+    "junkdiff": "./bin/hunk.cjs"
   },
   "files": [
     "bin",
