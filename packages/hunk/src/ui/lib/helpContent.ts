@@ -123,6 +123,7 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
       { commandIds: ["hunk.app.toggleFocusArea"], description: "toggle files/filter focus" },
       { keys: "F10", description: "open menus" },
       { commandIds: ["hunk.app.refresh"], description: "reload the review" },
+      { commandIds: ["hunk.app.openReviewPicker"], description: "pick worktree / base" },
       { commandIds: ["hunk.app.quit"], description: "quit" },
     ],
   },

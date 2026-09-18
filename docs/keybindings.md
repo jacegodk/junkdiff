@@ -111,6 +111,7 @@ Review and shared commands:
 | ---------------------------------------------- | ---------------------------------------------- | ---------------------------- |
 | `hunk.app.openAgentSkill`                      | Show agent skill                               | _(none)_                     |
 | `hunk.app.quit`                                | Quit                                           | `q`                          |
+| `hunk.app.openReviewPicker`                    | Pick worktree and base                         | `P`                          |
 | `hunk.app.refresh`                             | Refresh the review                             | `r`                          |
 | `hunk.app.toggleFocusArea`                     | Switch focus between files and filter          | `tab`                        |
 | `hunk.app.toggleHelp`                          | Toggle help                                    | `?`                          |

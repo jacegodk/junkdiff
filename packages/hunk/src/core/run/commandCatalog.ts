@@ -429,6 +429,15 @@ const BUILTIN_COMMANDS = [
     closesMenu: true,
   },
   {
+    id: "hunk.app.openReviewPicker",
+    title: "Pick worktree and base",
+    category: "app",
+    defaultKeys: ["P"],
+    locus: "host-only",
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
     id: "hunk.view.openThemeSelector",
     title: "Choose theme",
     category: "view",

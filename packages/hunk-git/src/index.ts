@@ -605,6 +605,14 @@ export function createGitVcsAdapter({
   } satisfies ExtensionVcsAdapter;
 }
 
+export {
+  listGitWorktrees,
+  resolveGitDefaultBranch,
+  resolveGitReviewBases,
+  type GitReviewBases,
+  type GitWorktree,
+} from "./worktrees";
+
 export const GitVcsAdapter = createGitVcsAdapter();
 
 export default function (hunk: HunkExtensionAPI) {

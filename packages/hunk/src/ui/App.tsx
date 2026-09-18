@@ -79,7 +79,9 @@ import {
 import { useHunkSessionBridge } from "./hooks/useHunkSessionBridge";
 import { useMenuController } from "./hooks/useMenuController";
 import { usePaneSlideAnimation } from "./hooks/usePaneSlideAnimation";
+import { useReviewPickerController } from "./hooks/useReviewPickerController";
 import { useThemeSelectorController } from "./hooks/useThemeSelectorController";
+import { reviewPickerApplies } from "./reviewPicker";
 import { useTimedNotice } from "./hooks/useTimedNotice";
 import { useUserNoteComposer } from "./hooks/useUserNoteComposer";
 import { useTerminalReview, type AgentNoteGeometrySnapshot } from "./hooks/useTerminalReview";
@@ -144,6 +146,9 @@ const FAST_CODE_HORIZONTAL_SCROLL_COLUMNS = 8;
 
 const LazyAgentSkillDialog = lazy(async () => ({
   default: (await import("./components/chrome/AgentSkillDialog")).AgentSkillDialog,
+}));
+const LazyReviewPickerDialog = lazy(async () => ({
+  default: (await import("./components/chrome/ReviewPickerDialog")).ReviewPickerDialog,
 }));
 const LazyThemeSelectorDialog = lazy(async () => ({
   default: (await import("./components/chrome/ThemeSelectorDialog")).ThemeSelectorDialog,
@@ -316,6 +321,30 @@ export function App({
     themeController: activeThemeController,
     transparentBackground: bootstrap.input.options.transparentBackground ?? false,
   });
+  const {
+    reviewPickerOpen,
+    reviewPickerStep,
+    reviewPickerItems,
+    reviewPickerSelectedIndex,
+    acceptReviewPicker,
+    acceptReviewPickerItem,
+    closeReviewPicker,
+    moveReviewPicker,
+    openReviewPicker,
+    selectReviewPickerItem,
+  } = useReviewPickerController({
+    bootstrap,
+    onReloadSession,
+    onTransientNotice: showTransientNotice,
+  });
+  // `junk diff` with no target: offer the worktree and base choice once, right after the first
+  // mount. A reload with a chosen base carries a target, so the remounted App does not ask again.
+  const reviewPickerOfferedRef = useRef(false);
+  useEffect(() => {
+    if (reviewPickerOfferedRef.current) return;
+    reviewPickerOfferedRef.current = true;
+    if (reviewPickerApplies(bootstrap.input)) openReviewPicker({ onlyIfChoice: true });
+  }, [bootstrap.input, openReviewPicker]);
   const currentViewPreferences = useMemo<PersistedViewPreferences>(
     () => ({
       mode: layoutMode,
@@ -1293,6 +1322,9 @@ export function App({
         moveSelection: review.moveSelection,
         moveNoteCursor: review.moveNoteCursor,
         openAgentSkill,
+        openReviewPicker: () => {
+          openReviewPicker();
+        },
         openThemeSelector,
         requestQuit,
         resolvedKeys: resolvedCommandKeys,
@@ -1425,8 +1457,12 @@ export function App({
     focusArea,
     promptActive: statusLineState.prompt !== null,
     moveMenuItem,
+    moveReviewPicker,
     moveThemeSelector,
     openMenu,
+    acceptReviewPicker,
+    closeReviewPicker,
+    reviewPickerOpen,
     saveConfigPromptOpen,
     saveViewPreferencesAndQuit,
     discardViewPreferencesAndQuit,
@@ -1822,6 +1858,22 @@ export function App({
             </text>
           </box>
         </ConfirmDialog>
+      ) : null}
+
+      {reviewPickerOpen && reviewPickerStep ? (
+        <Suspense fallback={null}>
+          <LazyReviewPickerDialog
+            items={reviewPickerItems}
+            selectedIndex={reviewPickerSelectedIndex}
+            step={reviewPickerStep}
+            terminalHeight={terminal.height}
+            terminalWidth={terminal.width}
+            theme={baseTheme}
+            onAcceptItem={acceptReviewPickerItem}
+            onClose={closeReviewPicker}
+            onSelectItem={selectReviewPickerItem}
+          />
+        </Suspense>
       ) : null}
 
       {themeSelectorOpen ? (

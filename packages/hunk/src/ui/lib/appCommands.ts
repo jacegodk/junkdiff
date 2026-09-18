@@ -129,6 +129,7 @@ export interface BuildAppCommandsOptions {
   /** Step note selection through the active surface's measured card order. */
   moveNoteCursor: (delta: number) => void;
   openAgentSkill: () => void;
+  openReviewPicker: () => void;
   openThemeSelector: () => void;
   requestQuit: () => void;
   /** Chords resolved against the user's `[keybindings]`; defaults apply where absent. */
@@ -267,6 +268,7 @@ function builtinCommandHandlers(
       isEnabled: () => options.canRefreshCurrentInput,
       run: () => options.triggerRefreshCurrentInput(),
     },
+    "hunk.app.openReviewPicker": { run: () => options.openReviewPicker() },
     "hunk.view.openThemeSelector": { run: () => options.openThemeSelector() },
     "hunk.view.toggleAgentNotes": { run: () => options.toggleAgentNotes() },
     "hunk.view.toggleLineNumbers": { run: () => options.toggleLineNumbers() },
@@ -360,6 +362,7 @@ const NOOP_COMMAND_OPTIONS: BuildAppCommandsOptions = (() => {
     moveSelection: noop,
     moveNoteCursor: noop,
     openAgentSkill: noop,
+    openReviewPicker: noop,
     openThemeSelector: noop,
     requestQuit: noop,
     scrollCodeHorizontally: noop,

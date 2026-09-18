@@ -21,10 +21,15 @@ export interface GitReviewBases {
   upstream: string | null;
 }
 
-function git(cwd: string, ...args: string[]): string | null {
+/** Raw stdout of a git command, or null when it fails; porcelain status lines start with a space, so no trim. */
+function gitRaw(cwd: string, ...args: string[]): string | null {
   const proc = Bun.spawnSync(["git", "-C", cwd, ...args], { stdout: "pipe", stderr: "ignore" });
   if (proc.exitCode !== 0) return null;
-  return Buffer.from(proc.stdout).toString("utf8").trim();
+  return Buffer.from(proc.stdout).toString("utf8");
+}
+
+function git(cwd: string, ...args: string[]): string | null {
+  return gitRaw(cwd, ...args)?.trim() ?? null;
 }
 
 /** Every worktree of the repository at `cwd`, most recently active first; empty outside a repository. */
@@ -44,7 +49,7 @@ export function listGitWorktrees(cwd: string): GitWorktree[] {
 /** Newest of the HEAD commit time and the mtime of any changed or untracked file. */
 function worktreeActivity(path: string): number {
   let latest = Number(git(path, "log", "-1", "--format=%ct") ?? 0) || 0;
-  const status = git(path, "status", "--porcelain", "-z", "--untracked-files=all");
+  const status = gitRaw(path, "status", "--porcelain", "-z", "--untracked-files=all");
   for (const entry of status?.split("\0") ?? []) {
     if (entry.length < 4) continue;
     try {

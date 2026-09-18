@@ -28,8 +28,12 @@ export interface UseAppKeyboardShortcutsOptions {
   closeHelp: () => void;
   closeMenu: () => void;
   acceptThemeSelector: () => void;
+  acceptReviewPicker: () => void;
   cancelDraftNote: () => void;
+  closeReviewPicker: () => void;
   closeThemeSelector: () => void;
+  moveReviewPicker: (delta: number) => void;
+  reviewPickerOpen: boolean;
   closeExtensionTrustPrompt: () => void;
   /**
    * Every app-level shortcut, built-in and extension-contributed, in dispatch
@@ -127,8 +131,12 @@ export function useAppKeyboardShortcuts({
   focusArea,
   promptActive,
   moveMenuItem,
+  moveReviewPicker,
   moveThemeSelector,
   openMenu,
+  acceptReviewPicker,
+  closeReviewPicker,
+  reviewPickerOpen,
   saveConfigPromptOpen,
   saveViewPreferencesAndQuit,
   discardViewPreferencesAndQuit,
@@ -151,6 +159,7 @@ export function useAppKeyboardShortcuts({
   const showHelpRef = useRef(showHelp);
   const saveConfigPromptOpenRef = useRef(saveConfigPromptOpen);
   const themeSelectorOpenRef = useRef(themeSelectorOpen);
+  const reviewPickerOpenRef = useRef(reviewPickerOpen);
   const extensionTrustPromptOpenRef = useRef(extensionTrustPromptOpen);
   const extensionDialogRef = useRef(extensionDialog);
   // The mode callbacks read live App state (which mode is running, its context),
@@ -176,6 +185,7 @@ export function useAppKeyboardShortcuts({
   showHelpRef.current = showHelp;
   saveConfigPromptOpenRef.current = saveConfigPromptOpen;
   themeSelectorOpenRef.current = themeSelectorOpen;
+  reviewPickerOpenRef.current = reviewPickerOpen;
   extensionTrustPromptOpenRef.current = extensionTrustPromptOpen;
   extensionDialogRef.current = extensionDialog;
   isFileViewModeActiveRef.current = isFileViewModeActive;
@@ -409,6 +419,44 @@ export function useAppKeyboardShortcuts({
     return "mine";
   };
 
+  /** Own every key while the review picker is up; it is a modal surface like the theme selector. */
+  const handleReviewPickerShortcut = (key: KeyEvent): KeyOwner => {
+    if (!reviewPickerOpenRef.current) {
+      return "notMine";
+    }
+
+    if (isEscapeKey(key)) {
+      closeReviewPicker();
+      return "mine";
+    }
+
+    if (moveVerticalModalSelection(key, moveReviewPicker)) {
+      return "mine";
+    }
+
+    if (key.name === "up") {
+      moveReviewPicker(-1);
+      return "mine";
+    }
+
+    if (key.name === "down") {
+      moveReviewPicker(1);
+      return "mine";
+    }
+
+    if (key.name === "tab") {
+      moveReviewPicker(key.shift ? -1 : 1);
+      return "mine";
+    }
+
+    if (key.name === "return" || key.name === "enter") {
+      acceptReviewPicker();
+      return "mine";
+    }
+
+    return "mine";
+  };
+
   /**
    * Navigate an open dropdown menu.
    *
@@ -601,6 +649,7 @@ export function useAppKeyboardShortcuts({
         handleMenuToggleShortcut,
         handleDialogShortcut,
         handleThemeSelectorShortcut,
+        handleReviewPickerShortcut,
         handleMenuShortcut,
       ],
       key,

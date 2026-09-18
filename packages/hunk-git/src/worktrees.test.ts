@@ -113,9 +113,10 @@ describe("listGitWorktrees", () => {
     ]);
     expect(listed[0]!.lastActivity).toBe(1_700_000_100);
 
-    // An untracked file in the main worktree, dated far in the future, moves it to the top.
-    writeFileSync(join(clone, "scratch.txt"), "x\n");
-    utimesSync(join(clone, "scratch.txt"), 1_800_000_000, 1_800_000_000);
+    // A modified tracked file in the main worktree, dated far in the future, moves it to the top.
+    // (A porcelain status line for a modification starts with a space; the parse must keep it.)
+    writeFileSync(join(clone, "a.txt"), "changed\n");
+    utimesSync(join(clone, "a.txt"), 1_800_000_000, 1_800_000_000);
     listed = listGitWorktrees(linked);
     expect(listed[0]!.path).toBe(clone);
     expect(listed[0]!.lastActivity).toBe(1_800_000_000);
