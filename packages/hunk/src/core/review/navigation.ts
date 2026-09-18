@@ -381,8 +381,17 @@ function planAnnotatedHunkMove(
     selection,
     delta,
   );
-  // The note is what the reviewer asked to see; the hunk around it comes along with it.
-  return target ? { ...target, reveal: { anchor: "hunk", scrollToNote: true } } : null;
+  if (!target) return null;
+  // The note is what the reviewer asked to see; the hunk around it comes along with it, and
+  // the hunk's first note becomes the active one so edit, reply and delete have a target.
+  const firstNote = (model.notes ?? []).find(
+    (note) => note.fileKey === target.fileKey && note.hunkIndex === target.hunkIndex,
+  );
+  return {
+    ...target,
+    ...(firstNote ? { activeNoteId: firstNote.noteId } : {}),
+    reveal: { anchor: "hunk", scrollToNote: true },
+  };
 }
 
 /** Plan a cycle through only the files carrying notes. */

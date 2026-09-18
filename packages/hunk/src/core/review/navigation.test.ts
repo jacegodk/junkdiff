@@ -162,13 +162,28 @@ describe("review selection movement", () => {
     expect(move(annotated, at("beta", 0), "annotated-hunk", -9).at).toBe("alpha:0");
   });
 
-  test("asks for the note when annotated-hunk navigation lands", () => {
+  test("asks for the note when annotated-hunk navigation lands, and activates the hunk's first note", () => {
     const annotated = model(annotationIndex({ beta: [0] }));
 
     expect(move(annotated, at("alpha", 0), "annotated-hunk", 1).reveal).toEqual({
       anchor: "hunk",
       scrollToNote: true,
     });
+
+    const withNotes = {
+      ...annotated,
+      notes: [
+        { fileKey: "beta", hunkIndex: 0, noteId: "note-b1" },
+        { fileKey: "beta", hunkIndex: 0, noteId: "note-b2" },
+      ],
+    };
+    expect(
+      planReviewSelectionMove(withNotes, at("alpha", 0), { scope: "annotated-hunk", delta: 1 }),
+    ).toMatchObject({ fileKey: "beta", hunkIndex: 0, activeNoteId: "note-b1" });
+    // Annotated without stored notes (a sidecar annotation only): nothing to activate.
+    expect(
+      planReviewSelectionMove(annotated, at("alpha", 0), { scope: "annotated-hunk", delta: 1 }),
+    ).not.toHaveProperty("activeNoteId");
   });
 
   test("refuses annotated navigation when the review has no notes", () => {
