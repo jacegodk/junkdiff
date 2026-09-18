@@ -140,6 +140,61 @@ describe("session reload filesystem bounds", () => {
     }
   });
 
+  test("allows a UI-initiated switch to another worktree of the same repository, and nothing else", () => {
+    const base = realPath(mkdtempSync(join(tmpdir(), "hunk-reload-bounds-worktrees-")));
+    const repo = join(base, "repo");
+    const linked = join(base, "linked");
+    const other = join(base, "other");
+    const git = (cwd: string, ...args: string[]) => {
+      const proc = Bun.spawnSync(["git", "-C", cwd, ...args], { stdout: "pipe", stderr: "pipe" });
+      if (proc.exitCode !== 0) throw new Error(Buffer.from(proc.stderr).toString("utf8"));
+    };
+    git(base, "init", "-q", "-b", "main", repo);
+    git(
+      repo,
+      "-c",
+      "user.name=t",
+      "-c",
+      "user.email=t@t",
+      "commit",
+      "-q",
+      "--allow-empty",
+      "-m",
+      "root",
+    );
+    git(repo, "worktree", "add", "-q", "-b", "feat", linked);
+    git(base, "init", "-q", "-b", "main", other);
+
+    try {
+      const bounds = createSessionReloadBounds(
+        bootstrapFor({ kind: "vcs", staged: false, options: {} }, repo),
+        { cwd: repo },
+      );
+      const input = { kind: "vcs" as const, staged: false, options: {} };
+
+      // Daemon path: the flag is absent, a sibling worktree is still refused.
+      expect(() =>
+        validateSessionReloadWithinBounds(bounds, input, { sourcePath: linked }),
+      ).toThrow("source path outside the initial Hunk root");
+      // UI path: the sibling worktree is accepted and becomes the reload cwd.
+      expect(
+        validateSessionReloadWithinBounds(bounds, input, {
+          sourcePath: linked,
+          allowSiblingWorktree: true,
+        }).cwd,
+      ).toBe(realPath(linked));
+      // A different repository is refused even with the flag.
+      expect(() =>
+        validateSessionReloadWithinBounds(bounds, input, {
+          sourcePath: other,
+          allowSiblingWorktree: true,
+        }),
+      ).toThrow("source path outside the initial Hunk root");
+    } finally {
+      rmSync(base, { force: true, recursive: true });
+    }
+  });
+
   test("rejects daemon reload source paths outside the initial repo root", () => {
     const repo = mkdtempSync(join(tmpdir(), "hunk-reload-bounds-repo-"));
     const outside = mkdtempSync(join(tmpdir(), "hunk-reload-bounds-outside-"));

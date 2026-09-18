@@ -150,10 +150,41 @@ function assertReloadFileWithinBounds(
   return candidate;
 }
 
-/** Resolve a reload cwd and reject it when it escapes the initial session root. */
-function assertReloadSourceWithinBounds(bounds: SessionReloadBounds, cwd: string, path: string) {
+/** The repository's shared Git directory for a worktree path, or null when it is not a Git worktree. */
+function gitCommonDir(path: string): string | null {
+  const proc = Bun.spawnSync(
+    ["git", "-C", path, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+    {
+      stdout: "pipe",
+      stderr: "ignore",
+    },
+  );
+  if (proc.exitCode !== 0) return null;
+  return resolveCanonicalPath(Buffer.from(proc.stdout).toString("utf8").trim());
+}
+
+/** Whether `candidate` is another worktree of the same Git repository as one of the roots. */
+function isSiblingWorktree(bounds: SessionReloadBounds, candidate: string) {
+  const candidateCommonDir = gitCommonDir(candidate);
+  if (candidateCommonDir === null) return false;
+  return bounds.roots.some((root) => gitCommonDir(root) === candidateCommonDir);
+}
+
+/**
+ * Resolve a reload cwd and reject it when it escapes the initial session root. A UI-initiated
+ * switch (`allowSiblingWorktree`) may also target another worktree of the same repository; the
+ * daemon path never sets that, so `hunk session reload` stays inside the launch root.
+ */
+function assertReloadSourceWithinBounds(
+  bounds: SessionReloadBounds,
+  cwd: string,
+  path: string,
+  allowSiblingWorktree = false,
+) {
   const candidate = resolveCanonicalPath(resolve(cwd, path));
-  const allowed = bounds.roots.some((root) => isWithinRoot(root, candidate));
+  const allowed =
+    bounds.roots.some((root) => isWithinRoot(root, candidate)) ||
+    (allowSiblingWorktree && isSiblingWorktree(bounds, candidate));
   if (!allowed) {
     throw new Error(
       `Session reload refused source path outside the initial Hunk root: ${candidate}`,
@@ -194,12 +225,17 @@ function validateCommonReloadOptions(
 export function validateSessionReloadWithinBounds(
   bounds: SessionReloadBounds,
   nextInput: CliInput,
-  options: { sourcePath?: string } = {},
+  options: { sourcePath?: string; allowSiblingWorktree?: boolean } = {},
 ) {
   assertReloadableBounds(bounds);
 
   const sourceCwd = options.sourcePath
-    ? assertReloadSourceWithinBounds(bounds, bounds.defaultCwd, options.sourcePath)
+    ? assertReloadSourceWithinBounds(
+        bounds,
+        bounds.defaultCwd,
+        options.sourcePath,
+        options.allowSiblingWorktree,
+      )
     : bounds.defaultCwd;
 
   validateCommonReloadOptions(bounds, sourceCwd, nextInput.options);

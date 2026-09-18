@@ -165,7 +165,7 @@ export function AppHost({
   // than becoming an explicit choice.
   const launchExtensionsEnabled = initialBootstrap.input.options.extensions;
   const launchExtensionPaths = initialBootstrap.input.options.extensionPaths;
-  const [sessionFileBounds] = useState(() =>
+  const [sessionFileBounds, setSessionFileBounds] = useState(() =>
     createSessionReloadBounds(initialBootstrap, { cwd: initialBootstrap.reloadContext.cwd }),
   );
   const initialExtensionStartupPendingRef = useRef(true);
@@ -270,6 +270,7 @@ export function AppHost({
       });
       const { cwd } = validateSessionReloadWithinBounds(sessionFileBounds, runtimeInput, {
         sourcePath: options?.sourcePath,
+        allowSiblingWorktree: options?.allowSiblingWorktree,
       });
       const baseVcsCatalog = getBundledVcsCatalog();
       const currentExtensions = extensionLifecycleEnabled
@@ -441,6 +442,13 @@ export function AppHost({
           nextBootstrap.review !== undefined && nextBootstrap.reviewSource !== "provider",
       };
       setActiveBootstrap(nextBootstrap);
+      if (options?.allowSiblingWorktree) {
+        // The review now lives in another worktree: later refreshes and daemon reloads must be
+        // judged against that worktree's root, not the one the process was launched in.
+        setSessionFileBounds(
+          createSessionReloadBounds(nextBootstrap, { cwd: nextBootstrap.reloadContext.cwd }),
+        );
+      }
       if (options?.resetApp !== false) {
         // Bumping the key forces a full App remount. Callers that pass `resetApp: false` get a
         // soft reload that preserves in-memory UI state like selection, filter text, and pane size.

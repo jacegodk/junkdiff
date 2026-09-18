@@ -274,6 +274,11 @@ export interface ReloadSessionOptions {
   /** False keeps the mounted App and its in-memory review state. */
   resetApp?: boolean;
   sourcePath?: string;
+  /**
+   * UI-initiated only: `sourcePath` may be another worktree of the same repository, and the
+   * session's reload bounds move to it. Never set for daemon-driven reloads.
+   */
+  allowSiblingWorktree?: boolean;
   /** What triggered the reload; forwarded to extension `session_reload` handlers. */
   reason?: SessionReloadReason;
   /**
