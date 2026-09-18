@@ -11,7 +11,8 @@ import { resolveCommandKeys } from "./keymap";
 import { buildSessionCommands } from "./sessionRegistrations";
 
 /** The help rows for a session with the given `[keybindings]` entries and bundled commands. */
-function helpSections(userBindings?: Record<string, string | false>): HelpSection[] {
+/** The built-in and bundled command table help is rendered against. */
+function helpCommands(userBindings?: Record<string, string | false>): AppCommand[] {
   const bundled = buildSessionCommands(undefined, getBundledUIRegistry());
   const { keys } = resolveCommandKeys({
     defaults: [...builtinCommandKeyDefaults(), ...extensionCommandKeyDefaults(bundled)],
@@ -24,7 +25,11 @@ function helpSections(userBindings?: Record<string, string | false>): HelpSectio
     resolvedKeys: keys,
     runCommand: () => {},
   });
-  return buildHelpSections([...builtins, ...commands]);
+  return [...builtins, ...commands];
+}
+
+function helpSections(userBindings?: Record<string, string | false>): HelpSection[] {
+  return buildHelpSections(helpCommands(userBindings));
 }
 
 /** The key column of the row documenting one description. */
@@ -49,6 +54,36 @@ describe("buildHelpSections", () => {
     expect(keysFor(sections, "unified / split / auto")).toBe("1 / 2 / 0");
     expect(keysFor(sections, "lines / wrap / metadata / menu")).toBe("l / w / m / M");
     expect(keysFor(sections, "annotated hunk / exact note")).toBe("{ / }");
+  });
+
+  test("lists a loaded extension's bound commands in their own section, unbound ones left out", () => {
+    const sections = buildHelpSections([
+      ...helpCommands(),
+      {
+        id: "hunk-viewed.toggleViewed",
+        title: "Toggle viewed on the selected file",
+        keys: ["V"],
+        keyLabels: ["V"],
+        publicToExtensions: false,
+        match: () => false,
+        run: () => {},
+      },
+      {
+        id: "hunk-viewed.foldViewed",
+        title: "Fold viewed files",
+        keys: [],
+        keyLabels: [],
+        publicToExtensions: false,
+        match: () => false,
+        run: () => {},
+      },
+    ]);
+    const section = sections.find((candidate) => candidate.title === "Extension hunk-viewed");
+    expect(section?.rows).toEqual([
+      { keys: "V", description: "Toggle viewed on the selected file" },
+    ]);
+    // Bundled UI commands belong to the `hunk` owner and stay in the curated rows.
+    expect(sections.map((candidate) => candidate.title)).not.toContain("Extension hunk");
   });
 
   test("documents the bundled search keys beside the built-in navigation rows", () => {

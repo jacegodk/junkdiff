@@ -115,6 +115,8 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
     entries: [
       { commandIds: ["hunk.review.focusFilter"], description: "focus file filter" },
       { commandIds: ["hunk.review.startNote"], description: "create review note" },
+      // Copy (`y`) is enabled only while a selection exists, so it is named in the text.
+      { commandIds: ["hunk.review.startVisualSelection"], description: "select text (y copies)" },
       {
         commandIds: [
           "hunk.review.editActiveNote",
@@ -168,13 +170,35 @@ function helpEntryKeys(commands: readonly AppCommand[], spec: HelpEntrySpec): st
   return labels.length > 0 ? labels.join(" / ") : undefined;
 }
 
+/**
+ * junk: one section per loaded extension, listing every bound command it registered, so the
+ * built-in hunk-viewed keys (and any installed extension's) show up in `?` beside hunk's own.
+ * Built-in and bundled commands live under the `hunk.` owner and are curated above instead.
+ */
+function extensionHelpSections(commands: readonly AppCommand[]): HelpSection[] {
+  const byExtension = new Map<string, HelpRow[]>();
+  for (const command of commands) {
+    const owner = command.id.slice(0, command.id.indexOf("."));
+    if (owner === "" || owner === "hunk" || command.keyLabels.length === 0) continue;
+    if (!isCommandEnabled(command)) continue;
+    const rows = byExtension.get(owner) ?? [];
+    rows.push({ keys: command.keyLabels.join(" / "), description: command.title });
+    byExtension.set(owner, rows);
+  }
+  return [...byExtension.entries()].map(([owner, rows]) => ({
+    title: `Extension ${owner}`,
+    rows,
+  }));
+}
+
 /** Build the help dialog's sections against the session's live command table. */
 export function buildHelpSections(commands: readonly AppCommand[]): HelpSection[] {
-  return HELP_SECTIONS.map((section) => ({
+  const curated = HELP_SECTIONS.map((section) => ({
     title: section.title,
     rows: section.entries.flatMap((spec) => {
       const keys = helpEntryKeys(commands, spec);
       return keys === undefined ? [] : [{ keys, description: spec.description }];
     }),
   })).filter((section) => section.rows.length > 0);
+  return [...curated, ...extensionHelpSections(commands)];
 }
