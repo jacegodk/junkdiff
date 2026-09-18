@@ -126,9 +126,27 @@ export function useFilePresentationController({
   useEffect(() => {
     const viewKeys = new Set(views.map(registeredFileViewKey));
     const reviewedFileIds = [...fileIds];
-    setSelections((current) => reconcileFileViewSelections(current, reviewedFileIds, viewKeys));
+    // junk: views that follow persisted state (a folded viewed file) select themselves for every
+    // file they match that has no stored choice yet, on load and on every reload.
+    const autoSelecting = views.filter((registered) => registered.view.autoSelect);
+    const readOnlyFiles = autoSelecting.length > 0 ? toReadOnlyFileViews(files) : [];
+    setSelections((current) => {
+      let next = reconcileFileViewSelections(current, reviewedFileIds, viewKeys);
+      for (const file of readOnlyFiles) {
+        if (next[file.id] !== undefined) continue;
+        const registered = autoSelecting.find((candidate) => {
+          try {
+            return candidate.view.matches(file);
+          } catch {
+            return false;
+          }
+        });
+        if (registered) next = selectFileView(next, file.id, registeredFileViewKey(registered));
+      }
+      return next;
+    });
     setEpochs((current) => reconcileFileViewEpochs(current, reviewedFileIds, viewKeys));
-  }, [fileIds, views]);
+  }, [fileIds, files, views]);
 
   /** Select raw or one registered presentation for a file. */
   const select = useCallback((fileId: string, viewKey: string | null) => {

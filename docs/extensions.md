@@ -1422,7 +1422,9 @@ the same side across rows, and requires each bound row to belong to exactly one
 (junk: or, for a row that is the whole extent of every hunk covering it, such as a file folded to
 one row, to all of them; a note on such a row hangs from the note's own hunk). junk also accepts an
 optional row `background: "added" | "removed"` that paints the raw diff's change tint under the
-row's spans and any syntax colors; selection and cursor backgrounds stay host-owned. Each bound row
+row's spans and any syntax colors; selection and cursor backgrounds stay host-owned. A file view may
+also set `autoSelect: true` to be selected on load and reload for every file it matches that has no
+stored presentation, so a view that follows persisted state shows without a command. Each bound row
 otherwise belongs to exactly one
 `hunkRows` extent. One source line and one bound row therefore resolve to one
 presentation/hunk target. Inline notes anchor by their existing preferred-side start

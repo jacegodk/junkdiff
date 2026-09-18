@@ -494,6 +494,12 @@ export interface ExtensionFileView {
     input: ExtensionFileViewInput,
   ): ExtensionFileViewLayout | null | Promise<ExtensionFileViewLayout | null>;
   /**
+   * junk: select this view on load and reload for every file it `matches` that has no stored
+   * presentation yet, so a presentation that follows persisted state (a folded viewed file)
+   * shows without a command. The first registered auto-select view that matches wins.
+   */
+  autoSelect?: boolean;
+  /**
    * Opt this view into receiving keys while its mode is active.
    *
    * Registering a mode changes nothing on its own; a command must call

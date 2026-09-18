@@ -24,12 +24,14 @@ function createTestView({
   title = "Preview",
   matches = () => true,
   mode,
+  autoSelect,
 }: {
   extensionId?: string;
   id?: string;
   title?: string;
   matches?: RegisteredFileView["view"]["matches"];
   mode?: RegisteredFileView["view"]["mode"];
+  autoSelect?: boolean;
 } = {}): RegisteredFileView {
   return {
     extensionId,
@@ -39,6 +41,7 @@ function createTestView({
       matches,
       layout: () => null,
       mode,
+      ...(autoSelect ? { autoSelect } : {}),
     },
   };
 }
@@ -172,6 +175,41 @@ describe("useFilePresentationController", () => {
       await act(async () => harness.update({ views: [] }));
       await act(async () => harness.update({ views: [reloadedPreview] }));
       expect(menuItem(harness.controller(), "hunk.view.filePresentation.raw").checked).toBe(true);
+    } finally {
+      await act(async () => harness.setup.renderer.destroy());
+    }
+  });
+
+  test("an auto-select view presents every matching file on load, and again after a reload", async () => {
+    const alpha = createTestDiffFile({ id: "alpha", path: "alpha.ts" });
+    const beta = createTestDiffFile({ id: "beta", path: "beta.ts" });
+    const folded = createTestView({
+      id: "folded",
+      title: "Folded",
+      matches: (file) => file.path === "alpha.ts",
+      autoSelect: true,
+    });
+    const key = registeredFileViewKey(folded);
+    const harness = await renderController({
+      files: [alpha, beta],
+      visibleFileIds: ["alpha", "beta"],
+      selectedFileId: "alpha",
+      draftFileId: null,
+      views: [folded],
+    });
+
+    try {
+      expect(presentationChecked(harness.controller(), key)).toBe(true);
+      await act(async () => harness.update({ selectedFileId: "beta" }));
+      expect(menuItem(harness.controller(), "hunk.view.filePresentation.raw").checked).toBe(true);
+
+      // A reload with fresh file objects keeps the matching file on the auto-selected view.
+      const reloadedAlpha = createTestDiffFile({ id: "alpha", path: "alpha.ts" });
+      const reloadedBeta = createTestDiffFile({ id: "beta", path: "beta.ts" });
+      await act(async () =>
+        harness.update({ files: [reloadedAlpha, reloadedBeta], selectedFileId: "alpha" }),
+      );
+      expect(presentationChecked(harness.controller(), key)).toBe(true);
     } finally {
       await act(async () => harness.setup.renderer.destroy());
     }

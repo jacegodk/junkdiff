@@ -428,6 +428,8 @@ export default function (hunk: HunkExtensionAPI) {
     id: FOLDED_VIEW_ID,
     title: "Viewed",
     matches: (file) => isViewed(getViewedState(), file),
+    // Files marked in an earlier session come back folded, not just ticked in the pane.
+    autoSelect: true,
     // `matches` gates which files can select this view, but hunk can still ask `layout` to
     // re-derive a stale presentation (e.g. after a refresh cleared the mark); decline it there too.
     // The fold binds each readable side's lines so a note keeps the file folded; junk verifies
