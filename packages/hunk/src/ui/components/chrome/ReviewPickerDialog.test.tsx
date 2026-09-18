@@ -54,7 +54,8 @@ describe("ReviewPickerDialog", () => {
     expect(frameRows(frame).inner).toBe(8);
     expect(frame).toContain("› branch-0");
     expect(frame).toContain("branch-2");
-    expect(frame).not.toContain("│ ");
+    // Only the frame's own two borders per inner row: no scrollbar track or thumb.
+    expect((frame.match(/│/g) ?? []).length).toBe(2 * 8);
     expect(frame).not.toContain("█");
   });
 
