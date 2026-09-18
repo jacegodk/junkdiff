@@ -61,6 +61,23 @@ function deliver(ctx: ExtensionCommandContext, outcome: SearchOutcome) {
   });
 }
 
+/**
+ * junk: with no search running, `n` / `N` step through review notes instead. Hunk ships its note
+ * stepping commands unbound because search owns these keys; here the two share them by state.
+ * Returns false when a search is active or the review has no notes, so the caller searches.
+ */
+function stepNotesInstead(
+  ctx: ExtensionCommandContext,
+  query: string | null,
+  direction: "forward" | "backward",
+): boolean {
+  if (query !== null) return false;
+  if ((ctx.review.snapshot()?.notes.length ?? 0) === 0) return false;
+  return ctx.commands.execute(
+    direction === "forward" ? "hunk.review.nextNote" : "hunk.review.previousNote",
+  );
+}
+
 const registerBundledSearch: ExtensionFactory = (hunk) => {
   const session = createSearchSession({ mode: "literal" });
 
@@ -97,15 +114,21 @@ const registerBundledSearch: ExtensionFactory = (hunk) => {
   );
 
   hunk.registerCommand(
-    { id: BUNDLED_SEARCH_NEXT_COMMAND_ID, title: "Next search match", key: "n" },
+    { id: BUNDLED_SEARCH_NEXT_COMMAND_ID, title: "Next search match, or note", key: "n" },
     (ctx) => {
+      if (stepNotesInstead(ctx, session.query, "forward")) return;
       deliver(ctx, session.repeat("forward", ctx.selection.files, positionOf(ctx.selection)));
     },
   );
 
   hunk.registerCommand(
-    { id: BUNDLED_SEARCH_PREVIOUS_COMMAND_ID, title: "Previous search match", key: "N" },
+    {
+      id: BUNDLED_SEARCH_PREVIOUS_COMMAND_ID,
+      title: "Previous search match, or note",
+      key: "N",
+    },
     (ctx) => {
+      if (stepNotesInstead(ctx, session.query, "backward")) return;
       deliver(ctx, session.repeat("backward", ctx.selection.files, positionOf(ctx.selection)));
     },
   );

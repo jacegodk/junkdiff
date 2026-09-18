@@ -18,6 +18,7 @@ import { resolveSavedNotesPath } from "../core/review/savedNotes";
 const { getBundledVcsCatalog } = await import("../app/vcsCatalog");
 const { loadAppBootstrap } = await import("../core/changeset/loaders");
 const { TestAppHost: AppHost } = await import("../../../../test/helpers/app-host");
+const { loadStartupExtensions } = await import("../extensions/startup");
 
 async function flush(setup: Awaited<ReturnType<typeof testRender>>) {
   await act(async () => {
@@ -205,6 +206,60 @@ describe("saved review notes", () => {
       expect(frame).not.toContain("already handled");
       expect(frame).toContain("deleted 1 handled note");
       expect(Object.keys(JSON.parse(readFileSync(notesPath, "utf8")).notes)).toEqual(["user:1"]);
+    } finally {
+      await act(async () => {
+        setup.renderer.destroy();
+      });
+      await removeTestDirectory(dir);
+    }
+  });
+
+  test("with no search running, n steps to a note and E edits it", async () => {
+    const dir = createRepo();
+    const notesPath = resolveSavedNotesPath(join(stateHome, "hunk"), dir, "main");
+    mkdirSync(dirname(notesPath), { recursive: true });
+    writeFileSync(
+      notesPath,
+      JSON.stringify({
+        version: 1,
+        worktree: dir,
+        branch: "main",
+        notes: {
+          "user:1": {
+            id: "user:1",
+            filePath: "alpha.ts",
+            hunkIndex: 0,
+            side: "new",
+            line: 2,
+            body: "step to me",
+            at: new Date().toISOString(),
+          },
+        },
+      }),
+    );
+    const extensions = await loadStartupExtensions({
+      extensions: { enabled: true, extensionConfigs: {}, paths: [], repoPaths: [] },
+      cwd: dir,
+      env: { XDG_CONFIG_HOME: join(stateHome, "config") } as NodeJS.ProcessEnv,
+      hostOverrides: { repoRoot: undefined },
+    });
+    const bootstrap = await loadAppBootstrap(
+      { kind: "vcs", staged: false, options: { mode: "unified", excludeUntracked: true } },
+      { cwd: dir, vcsCatalog: getBundledVcsCatalog() },
+    );
+    bootstrap.extensions = extensions;
+    const setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 120, height: 30 });
+    try {
+      await waitForFrame(setup, (f) => f.includes("step to me"));
+      await act(async () => {
+        await setup.mockInput.typeText("n");
+      });
+      await act(async () => {
+        await setup.mockInput.typeText("E");
+      });
+      const frame = await waitForFrame(setup, (f) => f.includes("Edit note"));
+      expect(frame).toContain("Edit note");
+      expect(frame).not.toContain("No search yet");
     } finally {
       await act(async () => {
         setup.renderer.destroy();

@@ -90,7 +90,9 @@ describe("buildHelpSections", () => {
     const sections = helpSections();
 
     expect(keysFor(sections, "search diff content")).toBe("/");
-    expect(keysFor(sections, "next / previous search match")).toBe("n / N");
+    expect(keysFor(sections, "next / previous search match (notes when not searching)")).toBe(
+      "n / N",
+    );
     // The filter ships unbound, so its row disappears rather than advertising nothing.
     expect(keysFor(sections, "focus file filter")).toBeUndefined();
   });
@@ -100,7 +102,9 @@ describe("buildHelpSections", () => {
 
     expect(keysFor(sections, "focus file filter")).toBe("/");
     expect(keysFor(sections, "search diff content")).toBeUndefined();
-    expect(keysFor(sections, "next / previous search match")).toBe("n / N");
+    expect(keysFor(sections, "next / previous search match (notes when not searching)")).toBe(
+      "n / N",
+    );
   });
 
   test("a row about one command lists every chord it answers to", () => {

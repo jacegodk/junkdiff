@@ -149,8 +149,8 @@ Review and shared commands:
 | `hunk.review.stepUp`                           | Move up one line or note                       | `up`, `k`                    |
 | `hunk.review.toggleHunkGap`                    | Expand or collapse the selected context        | `z`                          |
 | `hunk.search.find`                             | Search diff content                            | `/`                          |
-| `hunk.search.next`                             | Next search match                              | `n`                          |
-| `hunk.search.previous`                         | Previous search match                          | `N`                          |
+| `hunk.search.next`                             | Next search match, or note                     | `n`                          |
+| `hunk.search.previous`                         | Previous search match, or note                 | `N`                          |
 | `hunk.view.applyFilePresentationToAllMatching` | Apply current file presentation to all matches | _(none)_                     |
 | `hunk.view.cursorLineNumber`                   | Mark the current line number                   | _(none)_                     |
 | `hunk.view.cursorLineOff`                      | Hide the current-line marker                   | _(none)_                     |

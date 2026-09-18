@@ -65,7 +65,7 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
       { commandIds: ["hunk.search.find"], description: "search diff content" },
       {
         commandIds: ["hunk.search.next", "hunk.search.previous"],
-        description: "next / previous search match",
+        description: "next / previous search match (notes when not searching)",
       },
       {
         commandIds: ["hunk.review.scrollCodeLeft", "hunk.review.scrollCodeRight"],
