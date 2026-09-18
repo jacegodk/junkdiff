@@ -1419,6 +1419,11 @@ A row's optional `sourceRanges` contains inclusive, one-based exact-source
 bindings such as `{ side: "new", range: [12, 18] }`. Hunk reads only the bound
 source sides, verifies every range is in bounds, rejects overlapping ranges on
 the same side across rows, and requires each bound row to belong to exactly one
+(junk: or, for a row that is the whole extent of every hunk covering it, such as a file folded to
+one row, to all of them; a note on such a row hangs from the note's own hunk). junk also accepts an
+optional row `background: "added" | "removed"` that paints the raw diff's change tint under the
+row's spans and any syntax colors; selection and cursor backgrounds stay host-owned. Each bound row
+otherwise belongs to exactly one
 `hunkRows` extent. One source line and one bound row therefore resolve to one
 presentation/hunk target. Inline notes anchor by their existing preferred-side start
 line; Hunk renders the bound file-view row first and inserts its note cards afterward. Placement is

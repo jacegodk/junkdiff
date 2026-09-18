@@ -51,6 +51,40 @@ describe("file-view render plan", () => {
     });
   });
 
+  test("a folded row bound for every hunk hangs each note from the note's own hunk", () => {
+    const folded: ExtensionFileViewLayout = {
+      rows: [
+        {
+          id: "folded",
+          spans: [{ text: "✓ viewed" }],
+          sourceRanges: [
+            { side: "new", range: [1, 4] },
+            { side: "new", range: [20, 24] },
+          ],
+        },
+      ],
+      hunkRows: [
+        { startRow: 0, endRow: 0 },
+        { startRow: 0, endRow: 0 },
+      ],
+    };
+    expect(validateFileViewLayout(folded, 2, 80).valid).toBe(true);
+    const inSecond = createVisibleAgentNote(
+      [
+        { additionStart: 1, additionCount: 4, deletionStart: 1, deletionCount: 0 },
+        { additionStart: 20, additionCount: 5, deletionStart: 20, deletionCount: 0 },
+      ],
+      { id: "second", annotation: { id: "second", summary: "second", newRange: [22, 22] } },
+    );
+    const plan = buildFileViewRenderPlan(folded, [inSecond]);
+    expect(plan.unresolvedNoteIds).toEqual([]);
+    expect(plan.rows.map((row) => row.kind)).toEqual(["file-view-row", "inline-note"]);
+    expect(plan.rows[1]).toMatchObject({ anchorRowIndex: 0, anchorSide: "new", hunkIndex: 1 });
+    // The shared row has no single hunk, so it claims no raw-diff line alias.
+    expect(plan.rows[0]!.kind).toBe("file-view-row");
+    expect((plan.rows[0] as { stableAliasKeys?: unknown }).stableAliasKeys).toBeUndefined();
+  });
+
   test("anchors each row on the source line the raw diff addresses", () => {
     const plan = buildFileViewRenderPlan(layout, []);
 

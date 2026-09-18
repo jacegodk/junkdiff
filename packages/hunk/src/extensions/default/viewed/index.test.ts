@@ -495,7 +495,7 @@ describe("clearRepo", () => {
 });
 
 describe("folded file view", () => {
-  test("registers the viewed file view that matches viewed files and folds them", () => {
+  test("registers the viewed file view that matches viewed files and folds them", async () => {
     const fake = createFakeHunk();
     registerExtension(fake.hunk);
     const files = [
@@ -506,22 +506,32 @@ describe("folded file view", () => {
     const view = fake.fileViews[0] as {
       id: string;
       matches: (f: ExtensionDiffFile) => boolean;
-      layout: (input: { file: ExtensionDiffFile }) => { rows: unknown[] };
+      layout: (input: unknown) => Promise<{ rows: unknown[] } | null>;
     };
     expect(view.id).toBe("viewed");
     expect(view.matches(files[0]!)).toBe(false);
     storeToggleViewed(files[0]!, new Date());
     expect(view.matches(files[0]!)).toBe(true);
-    expect(view.layout({ file: files[0]! }).rows.length).toBe(1);
+    const input = {
+      file: files[0]!,
+      signal: new AbortController().signal,
+      readDocument: async () => "x\n",
+    };
+    expect((await view.layout(input))!.rows.length).toBe(1);
   });
 
-  test("layout declines a file that is not viewed", () => {
+  test("layout declines a file that is not viewed", async () => {
     const fake = createFakeHunk();
     registerExtension(fake.hunk);
     const files = [makeFile("1", "a.ts")];
     loadChangeset(fake, files);
-    const view = fake.fileViews[0] as { layout: (input: { file: ExtensionDiffFile }) => unknown };
-    expect(view.layout({ file: files[0]! })).toBeNull();
+    const view = fake.fileViews[0] as { layout: (input: unknown) => Promise<unknown> };
+    const input = {
+      file: files[0]!,
+      signal: new AbortController().signal,
+      readDocument: async () => "x\n",
+    };
+    expect(await view.layout(input)).toBeNull();
   });
 
   test("toggleViewed selects the folded view when marking and raw when clearing", () => {

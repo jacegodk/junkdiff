@@ -390,6 +390,12 @@ export interface ExtensionFileViewRow {
    */
   readonly sourceRanges?: readonly ExtensionFileViewSourceRange[];
   /**
+   * Paint the row on the raw diff's added or removed background, under any syntax colors, so a
+   * code-document row that shows a changed line still reads as a change. Selection and cursor
+   * backgrounds stay host-owned.
+   */
+  readonly background?: "added" | "removed";
+  /**
    * Experimental fixed-height React/OpenTUI painter, clipped inside host-owned geometry.
    * Height and render are one descriptor so a typed layout cannot declare either alone.
    */

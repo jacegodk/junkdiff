@@ -24,6 +24,7 @@ export const FILE_VIEW_MAX_CODE_DOCUMENT_LANGUAGE_LENGTH = 100;
 export const FILE_VIEW_MAX_LAYOUT_HEIGHT = 100_000;
 
 const FILE_VIEW_TONES = new Set(["muted", "accent", "accent-muted", "syntax", "added", "removed"]);
+const FILE_VIEW_ROW_BACKGROUNDS = new Set(["added", "removed"]);
 const FILE_VIEW_TEXT_ATTRIBUTES = new Set(["bold", "italic", "underline", "strikethrough"]);
 
 export interface ValidatedFileViewLayout {
@@ -387,6 +388,9 @@ function validateFileViewLayoutWithMeasurer(
         }),
       );
     }
+    if (row.background !== undefined && !FILE_VIEW_ROW_BACKGROUNDS.has(row.background)) {
+      return { valid: false, issue: `rows[${index}] has an invalid background` };
+    }
     let sourceRangesSnapshot: readonly ExtensionFileViewSourceRange[] | undefined;
     if (row.sourceRanges !== undefined) {
       if (!Array.isArray(row.sourceRanges)) {
@@ -443,6 +447,7 @@ function validateFileViewLayoutWithMeasurer(
         id: row.id,
         spans: Object.freeze(spans),
         ...(sourceRangesSnapshot === undefined ? {} : { sourceRanges: sourceRangesSnapshot }),
+        ...(row.background === undefined ? {} : { background: row.background }),
         ...(componentSnapshot === undefined ? {} : { component: componentSnapshot }),
       }),
     );
@@ -498,10 +503,19 @@ function validateFileViewLayoutWithMeasurer(
     hunkOwnerDeltas[hunk.startRow]! += 1;
     hunkOwnerDeltas[hunk.endRow + 1]! -= 1;
   }
+  // A bound row belongs to exactly one hunk, with one exception: a row that is the whole extent
+  // of every hunk covering it (a file folded to a single row) may be bound for all of them; the
+  // note it carries then resolves through the note's own hunk.
   let hunkOwnerCount = 0;
   for (const [rowIndex, row] of rows.entries()) {
     hunkOwnerCount += hunkOwnerDeltas[rowIndex]!;
-    if ((row.sourceRanges?.length ?? 0) > 0 && hunkOwnerCount !== 1) {
+    if ((row.sourceRanges?.length ?? 0) === 0 || hunkOwnerCount === 1) continue;
+    const foldedOnly = hunkRows.every(
+      (hunk) =>
+        !(hunk.startRow <= rowIndex && rowIndex <= hunk.endRow) ||
+        (hunk.startRow === rowIndex && hunk.endRow === rowIndex),
+    );
+    if (hunkOwnerCount === 0 || !foldedOnly) {
       return {
         valid: false,
         issue: `rows[${rowIndex}].sourceRanges must belong to exactly one hunkRows range`,

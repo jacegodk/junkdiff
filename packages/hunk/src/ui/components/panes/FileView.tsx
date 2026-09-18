@@ -222,7 +222,16 @@ function FileViewComponent({
         const index = plannedRow.rowIndex;
         const selected = isFileViewRowSelected(layout, index, selectedHunkIndex);
         const onCursorRow = plannedRowMatchesCursor(plannedRow, cursorHighlight);
-        const rowBackground = selected ? theme.selectedHunk : theme.panel;
+        // A declared change background wins: it is what tells a syntax-painted row apart from
+        // context, which the selected-hunk band would otherwise hide.
+        const rowBackground =
+          row.background === "added"
+            ? theme.addedBg
+            : row.background === "removed"
+              ? theme.removedBg
+              : selected
+                ? theme.selectedHunk
+                : theme.panel;
         const fixedHeight = row.component?.height;
         const View = row.component?.render as
           | ((props: ExtensionFileViewRowComponentProps) => ReactNode)

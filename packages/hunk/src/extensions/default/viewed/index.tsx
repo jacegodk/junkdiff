@@ -413,7 +413,20 @@ export default function (hunk: HunkExtensionAPI) {
     matches: (file) => isViewed(getViewedState(), file),
     // `matches` gates which files can select this view, but hunk can still ask `layout` to
     // re-derive a stale presentation (e.g. after a refresh cleared the mark); decline it there too.
-    layout: ({ file }) => (isViewed(getViewedState(), file) ? buildFoldedLayout(file) : null),
+    // The fold binds each readable side's lines so a note keeps the file folded; junk verifies
+    // bindings against the source, so a side that cannot be read is left unbound.
+    async layout(input) {
+      if (!isViewed(getViewedState(), input.file)) return null;
+      const [oldDocument, newDocument] = await Promise.all([
+        input.readDocument("old"),
+        input.readDocument("new"),
+      ]);
+      if (input.signal.aborted) return null;
+      return buildFoldedLayout(input.file, {
+        old: oldDocument !== null,
+        new: newDocument !== null,
+      });
+    },
   });
 
   hunk.registerFileView({

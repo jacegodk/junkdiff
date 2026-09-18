@@ -424,6 +424,8 @@ describe("file-view layout validation", () => {
       valid: false,
       issue: "new-side source ranges overlap between rows[0] and rows[1]",
     });
+    // A row that is the whole extent of every hunk covering it (a folded file) may be bound for
+    // all of them; a bound row inside a longer extent of a second hunk may not.
     expect(
       validateFileViewLayout(
         {
@@ -431,6 +433,22 @@ describe("file-view layout validation", () => {
           hunkRows: [
             { startRow: 0, endRow: 0 },
             { startRow: 0, endRow: 0 },
+          ],
+        },
+        2,
+        80,
+      ).valid,
+    ).toBe(true);
+    expect(
+      validateFileViewLayout(
+        {
+          rows: [
+            { id: "a", spans: [], sourceRanges: [{ side: "new", range: [1, 1] }] },
+            { id: "b", spans: [] },
+          ],
+          hunkRows: [
+            { startRow: 0, endRow: 0 },
+            { startRow: 0, endRow: 1 },
           ],
         },
         2,

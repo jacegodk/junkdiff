@@ -33,8 +33,8 @@ export interface FileViewRenderPlan {
   readonly unresolvedNoteIds: readonly string[];
 }
 
-/** Resolve unique hunk ownership for every row in one bounded sweep. */
-function hunkOwnersByRow(layout: ExtensionFileViewLayout) {
+/** Resolve the hunks owning every row in one bounded sweep; most rows have exactly one. */
+function hunkOwnersByRow(layout: ExtensionFileViewLayout): readonly (readonly number[])[] {
   const starts = Array.from({ length: layout.rows.length + 1 }, () => [] as number[]);
   const ends = Array.from({ length: layout.rows.length + 1 }, () => [] as number[]);
   for (const [hunkIndex, hunkRows] of layout.hunkRows.entries()) {
@@ -46,8 +46,23 @@ function hunkOwnersByRow(layout: ExtensionFileViewLayout) {
   return layout.rows.map((_, rowIndex) => {
     for (const hunkIndex of ends[rowIndex]!) active.delete(hunkIndex);
     for (const hunkIndex of starts[rowIndex]!) active.add(hunkIndex);
-    return active.size === 1 ? active.values().next().value! : -1;
+    return [...active].sort((left, right) => left - right);
   });
+}
+
+/** The one hunk a row shares with the raw diff, or -1 when it has none or several. */
+function soleOwner(owners: readonly number[]) {
+  return owners.length === 1 ? owners[0]! : -1;
+}
+
+/**
+ * The hunk a note hangs from on `owners`' row: the sole owner, or on a folded row (owned by
+ * every hunk it stands for) the note's own hunk when that is one of them.
+ */
+function noteHunkIndex(owners: readonly number[], note: VisibleAgentNote) {
+  if (owners.length === 1) return owners[0]!;
+  const own = note.anchor.ownerHunkIndex;
+  return own !== undefined && owners.includes(own) ? own : -1;
 }
 
 /** Build the line anchor one presentation row shares with the raw diff, if it owns exactly one hunk. */
@@ -93,7 +108,7 @@ export function buildFileViewRenderPlan(
   for (const note of visibleAgentNotes) {
     const anchor = annotationAnchor(note.annotation);
     const rowIndex = boundRowIndex(layout, note.annotation);
-    const hunkIndex = rowIndex < 0 ? -1 : hunkOwnerByRow[rowIndex]!;
+    const hunkIndex = rowIndex < 0 ? -1 : noteHunkIndex(hunkOwnerByRow[rowIndex]!, note);
     if (!anchor || rowIndex < 0 || hunkIndex < 0) {
       unresolvedNoteIds.push(note.id);
       continue;
@@ -107,7 +122,7 @@ export function buildFileViewRenderPlan(
   const claimedLineKeys = new Set<string>();
   for (const [rowIndex, row] of layout.rows.entries()) {
     const key = `file-view:${row.id}`;
-    const lineKey = rowLineStableKey(row, hunkOwnerByRow[rowIndex]!);
+    const lineKey = rowLineStableKey(row, soleOwner(hunkOwnerByRow[rowIndex]!));
     // Only the first row on a line claims it, matching how measured bounds resolve duplicates.
     const claimsLine = lineKey !== undefined && !claimedLineKeys.has(lineKey);
     if (claimsLine) {

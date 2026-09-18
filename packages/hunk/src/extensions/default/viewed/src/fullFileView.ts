@@ -125,15 +125,18 @@ function syntaxRef(
 /**
  * A span of row content: toned like its row, and painted by hunk's highlighter when `syntax`
  * resolves. Only untoned (context) spans take a reference: hunk's token colors override `tone`
- * and it paints no added/removed background on file-view rows, so a highlighted change line
- * would look like context with a marker. Changed lines stay solid green and red instead.
+ * and hunk paints no added/removed background on file-view rows, so a highlighted change line
+ * would look like context with a marker. junk's single-column rows carry a row `background`
+ * instead and pass `tinted`, so their change lines are painted too; split rows have two sides
+ * in one row and stay solid green and red.
  */
 function contentSpan(
   text: string,
   tone: ExtensionFileViewSpan["tone"],
   syntax?: ExtensionFileViewSyntaxReference,
+  tinted = false,
 ): ExtensionFileViewSpan {
-  return { text, ...(tone ? { tone } : {}), ...(syntax && !tone ? { syntax } : {}) };
+  return { text, ...(tone ? { tone } : {}), ...(syntax && (tinted || !tone) ? { syntax } : {}) };
 }
 
 /** Add `codeDocuments` to a built layout when syntax paint is on. */
@@ -170,6 +173,7 @@ function splitHitContentSpans(
   ranges: readonly (readonly [number, number])[],
   current: SearchHit | null | undefined,
   docs: SyntaxDocuments | null,
+  tinted = false,
 ): ExtensionFileViewSpan[] {
   const spans: ExtensionFileViewSpan[] = [contentSpan(`${marker} `, tone)];
   const plain = (start: number, end: number) =>
@@ -177,6 +181,7 @@ function splitHitContentSpans(
       text.slice(start, end),
       tone,
       syntaxRef(docs, side, line, text.slice(start, end), [start, end]),
+      tinted,
     );
   let cursor = 0;
   for (const [start, end] of ranges) {
@@ -286,6 +291,7 @@ function buildSingleFileLayout(
               hitRanges,
               hits?.current,
               docs,
+              true,
             ),
           ]
         : [
@@ -298,6 +304,7 @@ function buildSingleFileLayout(
                     text,
                     tone,
                     rowLine === null ? undefined : syntaxRef(docs, rowSide, rowLine, text),
+                    true,
                   ),
                 ]),
           ];
@@ -307,7 +314,12 @@ function buildSingleFileLayout(
         : inHunk && oldLine !== null
           ? [{ side: "old" as const, range: [oldLine, oldLine] as const }]
           : undefined;
-    rows.push({ id: `full:${rows.length}`, spans, ...(sourceRanges ? { sourceRanges } : {}) });
+    rows.push({
+      id: `full:${rows.length}`,
+      spans,
+      ...(sourceRanges ? { sourceRanges } : {}),
+      ...(tone ? { background: tone } : {}),
+    });
   };
 
   let nextNew = 1; // 1-based new-side line about to be emitted

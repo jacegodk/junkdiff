@@ -435,7 +435,7 @@ describe("buildFullFileLayout syntax paint (API 24)", () => {
     ["line one", "line two", "line three", "line four", "line five", "line six"].join("\n") + "\n";
   const hunks = parseUnifiedPatch(patch.replace("-2,3 +2,3", "-1,3 +1,3"));
 
-  test("single column: declares the new document; context rows reference it, changed rows keep their solid tone", () => {
+  test("single column: declares the new document; every row references it, changed rows carry a background", () => {
     const layout = buildFullFileLayout(newDocument, hunks);
     expect(layout).not.toBeNull();
     expect(layout!.codeDocuments).toEqual([{ id: "new", text: newDocument }]);
@@ -445,19 +445,22 @@ describe("buildFullFileLayout syntax paint (API 24)", () => {
       { text: "  " },
       { text: "line one", syntax: { documentId: "new", line: 1 } },
     ]);
-    // Removed and added rows: solid tone on marker and text, no reference, so hunk's token
-    // colors cannot wash out the change (hunk paints no added/removed background on file views).
+    // Removed row: no old document, so no reference; the row background carries the change.
     expect(layout!.rows[1]!.spans).toEqual([
       { text: "  ", tone: "muted" },
       { text: "- ", tone: "removed" },
       { text: "line two", tone: "removed" },
     ]);
+    expect(layout!.rows[1]!.background).toBe("removed");
+    // Added row: toned, referenced (the tint keeps it readable as a change), tinted.
     expect(layout!.rows[2]!.spans).toEqual([
       { text: "2 ", tone: "muted" },
       { text: "+ ", tone: "added" },
-      { text: "line two changed", tone: "added" },
+      { text: "line two changed", tone: "added", syntax: { documentId: "new", line: 2 } },
     ]);
-    expect(syntaxSpans(layout!)).toHaveLength(5);
+    expect(layout!.rows[2]!.background).toBe("added");
+    expect(layout!.rows[0]!.background).toBeUndefined();
+    expect(syntaxSpans(layout!)).toHaveLength(6);
     expectValidFileViewLayout(layout!, 2);
   });
 
