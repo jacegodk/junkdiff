@@ -78,6 +78,7 @@ describe("extension startup", () => {
       cwd: home,
       env: { XDG_CONFIG_HOME: home } as NodeJS.ProcessEnv,
       hostOverrides: { repoRoot: undefined },
+      builtInExtensions: [],
     });
 
     expect(result.issues).toEqual([]);
@@ -107,6 +108,7 @@ export default function (hunk) {
       cwd: repo,
       env: { XDG_CONFIG_HOME: configHome } as NodeJS.ProcessEnv,
       deferEventBusBinding: true,
+      builtInExtensions: [],
     });
     const repoExtensions = join(repo, ".hunk", "extensions");
     mkdirSync(repoExtensions, { recursive: true });
@@ -127,10 +129,71 @@ export default function (hunk) {
       projectRoot: repo,
       previousLoad: provisional,
       hostOverrides: { resolveRepoTrustImpl: () => "trusted" },
+      builtInExtensions: [],
     });
 
     expect(readFileSync(logPath, "utf8")).toBe("global\nlocal\nevent\n");
     expect(final.loaded.map((extension) => extension.id)).toEqual(["global", "local"]);
+  });
+
+  test("junk's built-in extensions load first under their own ids, and an installed copy is refused", async () => {
+    const home = createTempDir("hunk-startup-builtin-");
+    const installed = writeGlobalExtension(
+      home,
+      "viewed.ts",
+      `export default function (hunk: { registerTheme: (t: { id: string }) => void }) {
+  hunk.registerTheme({ id: "from-disk" });
+}
+`,
+    );
+    writeGlobalExtension(
+      home,
+      "other.ts",
+      `export default function (hunk: { registerTheme: (t: { id: string }) => void }) {
+  hunk.registerTheme({ id: "other" });
+}
+`,
+    );
+
+    const result = await loadStartupExtensions({
+      extensions: createExtensionsConfig(),
+      cwd: home,
+      env: { XDG_CONFIG_HOME: home } as NodeJS.ProcessEnv,
+      hostOverrides: { repoRoot: undefined },
+      builtInExtensions: [
+        {
+          id: "viewed",
+          sourcePath: "junk:bundled/viewed",
+          factory: (hunk) => hunk.registerTheme({ id: "built-in" }),
+        },
+      ],
+    });
+
+    expect(result.loaded.map((entry) => [entry.id, entry.origin])).toEqual([
+      ["viewed", "bundled"],
+      ["other", "global"],
+    ]);
+    expect(result.registry.themes.map((entry) => entry.theme.id)).toEqual(["built-in", "other"]);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0]?.path).toBe(installed);
+    expect(result.issues[0]?.message).toBe(
+      '"viewed" is built into junk • hunk extension remove viewed',
+    );
+  });
+
+  test("the default built-in list carries hunk-viewed, so a bare start still has it", async () => {
+    const home = createTempDir("hunk-startup-default-builtin-");
+    const result = await loadStartupExtensions({
+      extensions: createExtensionsConfig(),
+      cwd: home,
+      env: { XDG_CONFIG_HOME: home } as NodeJS.ProcessEnv,
+      hostOverrides: { repoRoot: undefined },
+    });
+    expect(result.issues).toEqual([]);
+    expect(result.loaded.map((entry) => entry.id)).toEqual(["hunk-viewed"]);
+    expect(
+      result.registry.commands.map((entry) => `${entry.extensionId}.${entry.command.id}`),
+    ).toContain("hunk-viewed.toggleViewed");
   });
 
   test("shuts down a provisional pass before changed config requires rebuilding it", async () => {

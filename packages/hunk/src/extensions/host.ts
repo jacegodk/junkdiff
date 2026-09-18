@@ -18,8 +18,22 @@ import {
   type ExtensionRegistry,
 } from "./types";
 
+/**
+ * A user-tier extension compiled into the binary: it loads through the same path as an installed
+ * one, under its own id, before any discovered candidate. An installed copy with the same id is
+ * refused, so a stale `hunk extension install` of it costs a notice, not a duplicate.
+ */
+export interface BuiltInExtension {
+  id: string;
+  factory: ExtensionFactory;
+  /** Reported as the source path; `junk:bundled/<name>` by convention. */
+  sourcePath: string;
+}
+
 export interface LoadExtensionsOptions {
   candidates: readonly ExtensionCandidate[];
+  /** Extensions shipped inside junk that take their ids before discovery runs. */
+  builtInExtensions?: readonly BuiltInExtension[];
   /** Full candidate order represented after this pass; defaults to `candidates`. */
   allCandidates?: readonly ExtensionCandidate[];
   /** Existing pass to extend when `candidates` contains only a newly discovered suffix. */
@@ -58,6 +72,9 @@ async function importExtensionModule(path: string): Promise<unknown> {
   return await import(pathToFileURL(path).href);
 }
 
+/** Source-path prefix of built-in extensions; a refusal against one gets its own wording. */
+export const BUILT_IN_SOURCE_PREFIX = "junk:bundled/";
+
 /** Report whether an id belongs to Hunk rather than to a user extension. */
 function isReservedExtensionId(id: string, reservedIds: ReadonlySet<string>) {
   return id === HUNK_VENDOR_EXTENSION_ID || reservedIds.has(id);
@@ -85,9 +102,11 @@ function describeIdRefusal(
   }
 
   const owner = claimedBy.get(candidate.id);
-  return owner === undefined
-    ? undefined
-    : `another extension already loaded as "${candidate.id}" (${owner}) • rename ${candidate.path}`;
+  if (owner === undefined) return undefined;
+  if (owner.startsWith(BUILT_IN_SOURCE_PREFIX)) {
+    return `"${candidate.id}" is built into junk • hunk extension remove ${candidate.id}`;
+  }
+  return `another extension already loaded as "${candidate.id}" (${owner}) • rename ${candidate.path}`;
 }
 
 /** One candidate set split into what may load and the ids that were refused. */
@@ -184,10 +203,13 @@ export async function loadExtensions(options: LoadExtensionsOptions): Promise<Ex
   // gets a loader hook, let alone an evaluated module.
   const reservedIds = options.reservedExtensionIds ?? new Set<string>();
   const previousCandidates = options.previousLoad?.loadState.candidates ?? [];
+  const builtIns = options.builtInExtensions ?? [];
+  const initialClaims = collectCandidateClaims(previousCandidates, reservedIds);
+  for (const builtIn of builtIns) initialClaims.set(builtIn.id, builtIn.sourcePath);
   const { accepted, issues: candidateIssues } = acceptCandidateIds(
     options.candidates,
     reservedIds,
-    collectCandidateClaims(previousCandidates, reservedIds),
+    initialClaims,
   );
   const issues = [...(options.previousLoad?.issues ?? []), ...candidateIssues];
   // Before any candidate is imported, so its `react` (and `hunkdiff/extension`)
@@ -231,6 +253,20 @@ export async function loadExtensions(options: LoadExtensionsOptions): Promise<Ex
     repoTrustState ??= resolveTrust(repoRoot, trustOptions);
     return repoTrustState;
   };
+
+  // Built-ins first: their factories are statically in hand, and loading them ahead of every
+  // discovered candidate is what makes their default keys win a chord conflict.
+  for (const builtIn of builtIns) {
+    if (registryRetired(registry)) break;
+    if (registry.extensions.some((loaded) => loaded.id === builtIn.id)) continue;
+    await runExtensionFactory({
+      metadata: { id: builtIn.id, sourcePath: builtIn.sourcePath, origin: "bundled" },
+      registry,
+      issues,
+      factory: builtIn.factory,
+      config: options.extensionConfigs?.[builtIn.id],
+    });
+  }
 
   for (const candidate of accepted) {
     if (registryRetired(registry)) break;
