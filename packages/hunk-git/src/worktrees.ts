@@ -84,8 +84,13 @@ export function resolveGitDefaultBranch(cwd: string): string | null {
  * Bases for the worktree at `cwd`: the merge-base with the default branch (remote-tracking ref
  * preferred, a local default may be stale), and the upstream ref when it differs from HEAD.
  */
+/** Checked-out branch of `cwd`, or null when HEAD is detached or `cwd` is no repository. */
+export function resolveGitBranch(cwd: string): string | null {
+  return git(cwd, "symbolic-ref", "--short", "-q", "HEAD");
+}
+
 export function resolveGitReviewBases(cwd: string): GitReviewBases {
-  const branch = git(cwd, "symbolic-ref", "--short", "-q", "HEAD");
+  const branch = resolveGitBranch(cwd);
   const defaultBranch = resolveGitDefaultBranch(cwd);
   let defaultBase: string | null = null;
   if (defaultBranch) {

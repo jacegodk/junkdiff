@@ -519,6 +519,29 @@ describe("drafts", () => {
     expect(saved.activeNoteId).toBe("user-1");
   });
 
+  test("replacing user notes installs the given set and keeps focus only on a surviving note", () => {
+    const started = reduceReviewState(createTestReviewState(), { type: "draft/start", draft });
+    const saved = reduceReviewState(started, {
+      type: "draft/save",
+      note: createTestStoredNote({ id: "user-1", fileKey: "alpha", source: "user" }),
+    });
+    const replaced = reduceReviewState(saved, {
+      type: "notes/replace-user",
+      notes: [
+        createTestStoredNote({ id: "user-2", fileKey: "alpha", source: "user" }),
+        createTestStoredNote({ id: "user-3", fileKey: "beta", source: "user" }),
+      ],
+    });
+    expect(replaced.userNotes.map((entry) => entry.note.id)).toEqual(["user-2", "user-3"]);
+    expect(replaced.activeNoteId).toBeNull();
+
+    const kept = reduceReviewState(saved, {
+      type: "notes/replace-user",
+      notes: [createTestStoredNote({ id: "user-1", fileKey: "alpha", source: "user" })],
+    });
+    expect(kept.activeNoteId).toBe("user-1");
+  });
+
   test("saving an edit replaces the note in place", () => {
     const original = createTestStoredNote({ id: "user-1", fileKey: "alpha", source: "user" });
     const state = {

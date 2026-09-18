@@ -238,6 +238,15 @@ export function reduceReviewState(state: ReviewState, action: ReviewAction): Rev
             activeNoteId: state.activeNoteId === action.noteId ? null : state.activeNoteId,
           };
     }
+    case "notes/replace-user": {
+      const userNotes = [...action.notes];
+      const activeKept = userNotes.some((entry) => entry.note.id === state.activeNoteId);
+      return {
+        ...state,
+        userNotes,
+        activeNoteId: activeKept ? state.activeNoteId : null,
+      };
+    }
     case "draft/start":
       return { ...state, draftNote: action.draft };
     case "draft/update":

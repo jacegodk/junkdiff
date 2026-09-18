@@ -79,7 +79,10 @@ import {
 import { useHunkSessionBridge } from "./hooks/useHunkSessionBridge";
 import { useMenuController } from "./hooks/useMenuController";
 import { usePaneSlideAnimation } from "./hooks/usePaneSlideAnimation";
+import { resolveGitBranch } from "@hunk/git";
+import { resolveCanonicalPath } from "../core/run/paths";
 import { useReviewPickerController } from "./hooks/useReviewPickerController";
+import { useSavedReviewNotes } from "./hooks/useSavedReviewNotes";
 import { useThemeSelectorController } from "./hooks/useThemeSelectorController";
 import { reviewPickerApplies } from "./reviewPicker";
 import { useTimedNotice } from "./hooks/useTimedNotice";
@@ -279,6 +282,27 @@ export function App({
   const [showAgentSkill, setShowAgentSkill] = useState(false);
   const [storedFocusArea, setFocusArea] = useState<StoredFocusArea>("files");
   const { text: sessionNoticeText, show: showSessionNotice } = useTimedNotice(4_000);
+  // Saved notes belong to a worktree and branch, so a VCS review names them by the repository
+  // root it reviews and whatever is checked out there at load time.
+  const savedNotesIdentity = useMemo(() => {
+    if (bootstrap.input.kind !== "vcs") return null;
+    const worktree = resolveCanonicalPath(
+      bootstrap.reloadContext.repoRoot ?? bootstrap.reloadContext.cwd,
+    );
+    return { worktree, branch: resolveGitBranch(worktree) ?? "detached" };
+    // The branch can change between loads of the same worktree, so re-resolve per changeset.
+  }, [
+    bootstrap.changeset.id,
+    bootstrap.input.kind,
+    bootstrap.reloadContext.cwd,
+    bootstrap.reloadContext.repoRoot,
+  ]);
+  useSavedReviewNotes({
+    store: review.store,
+    identity: savedNotesIdentity,
+    documentGeneration: bootstrap.changeset.id,
+    onNotice: showSessionNotice,
+  });
   // Keep an incompatible-daemon notice until the broker reconnects; timed notices must not clear it.
   const [daemonNoticeText, setDaemonNoticeText] = useState<string | null>(null);
   const { store: statusLineStore, snapshot: statusLineState } = useStatusLine({

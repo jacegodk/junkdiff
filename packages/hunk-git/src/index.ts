@@ -607,6 +607,7 @@ export function createGitVcsAdapter({
 
 export {
   listGitWorktrees,
+  resolveGitBranch,
   resolveGitDefaultBranch,
   resolveGitReviewBases,
   type GitReviewBases,
