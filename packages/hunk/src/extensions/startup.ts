@@ -4,7 +4,6 @@ import type { ExtensionsConfig } from "../core/run/config";
 import { sanitizeTerminalText } from "../lib/terminalText";
 import { discoverExtensions } from "./discovery";
 import { retireExtensionLoadResult } from "./events";
-import { JUNK_BUILT_IN_EXTENSIONS } from "./default/builtIn";
 import { loadExtensions, type BuiltInExtension, type LoadExtensionsOptions } from "./host";
 import { createExtensionNotificationHub, type ExtensionNotificationHub } from "./notifications";
 import {
@@ -28,7 +27,7 @@ export interface LoadStartupExtensionsOptions {
   projectRoot?: string;
   /** Product-owned ids user extension modules may not claim. */
   reservedExtensionIds?: ReadonlySet<string>;
-  /** Extensions compiled into junk; defaults to junk's own list, tests pass `[]` to opt out. */
+  /** Extensions compiled into junk; the app and CLI bootstraps pass junk's list, tests pass none. */
   builtInExtensions?: readonly BuiltInExtension[];
   /**
    * Sink extension `ctx.notify` calls land in. Pass the hub from an earlier
@@ -106,8 +105,7 @@ export async function loadStartupExtensions(
     repoConfigPaths: options.extensions.repoPaths,
   });
 
-  const builtInExtensions: readonly BuiltInExtension[] =
-    options.builtInExtensions ?? JUNK_BUILT_IN_EXTENSIONS;
+  const builtInExtensions: readonly BuiltInExtension[] = options.builtInExtensions ?? [];
   if (candidates.length === 0 && builtInExtensions.length === 0) {
     await retireExtensionLoadResult(options.previousLoad);
     return createEmptyExtensionLoadResult(cwd, notifications);

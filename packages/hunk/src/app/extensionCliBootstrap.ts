@@ -12,6 +12,7 @@ import {
   resolveExtensionCliCommands,
   type ResolvedExtensionCliCommands,
 } from "../extensions/cliCommands";
+import { JUNK_BUILT_IN_EXTENSIONS } from "../extensions/default/builtIn";
 import { retireExtensionLoadResult } from "../extensions/events";
 import { loadStartupExtensions } from "../extensions/startup";
 import type { ExtensionLoadResult } from "../extensions/types";
@@ -62,6 +63,7 @@ export async function resolveExtensionCliBootstrap(
       cliExtensionPaths: options.input.extensionPaths,
       projectRoot: configured.projectRoot,
       reservedExtensionIds: options.baseVcsCatalog.reservedIds,
+      builtInExtensions: JUNK_BUILT_IN_EXTENSIONS,
       deferEventBusBinding: true,
       onProvisionalLoad: (result) => {
         provisional = result;
@@ -89,6 +91,7 @@ export async function resolveExtensionCliBootstrap(
         cliExtensionPaths: options.input.extensionPaths,
         projectRoot: configured.projectRoot,
         reservedExtensionIds: options.baseVcsCatalog.reservedIds,
+        builtInExtensions: JUNK_BUILT_IN_EXTENSIONS,
         notifications: extensions.notifications,
         previousLoad: extensions,
         deferEventBusBinding: true,

@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionsConfig } from "../core/run/config";
+import { JUNK_BUILT_IN_EXTENSIONS } from "./default/builtIn";
 import {
   createExtensionLoadNotices,
   createSupersededExtensionNotices,
@@ -78,7 +79,6 @@ describe("extension startup", () => {
       cwd: home,
       env: { XDG_CONFIG_HOME: home } as NodeJS.ProcessEnv,
       hostOverrides: { repoRoot: undefined },
-      builtInExtensions: [],
     });
 
     expect(result.issues).toEqual([]);
@@ -108,7 +108,6 @@ export default function (hunk) {
       cwd: repo,
       env: { XDG_CONFIG_HOME: configHome } as NodeJS.ProcessEnv,
       deferEventBusBinding: true,
-      builtInExtensions: [],
     });
     const repoExtensions = join(repo, ".hunk", "extensions");
     mkdirSync(repoExtensions, { recursive: true });
@@ -129,7 +128,6 @@ export default function (hunk) {
       projectRoot: repo,
       previousLoad: provisional,
       hostOverrides: { resolveRepoTrustImpl: () => "trusted" },
-      builtInExtensions: [],
     });
 
     expect(readFileSync(logPath, "utf8")).toBe("global\nlocal\nevent\n");
@@ -181,13 +179,14 @@ export default function (hunk) {
     );
   });
 
-  test("the default built-in list carries hunk-viewed, so a bare start still has it", async () => {
+  test("junk's built-in list carries hunk-viewed, and it loads with no extension on disk", async () => {
     const home = createTempDir("hunk-startup-default-builtin-");
     const result = await loadStartupExtensions({
       extensions: createExtensionsConfig(),
       cwd: home,
       env: { XDG_CONFIG_HOME: home } as NodeJS.ProcessEnv,
       hostOverrides: { repoRoot: undefined },
+      builtInExtensions: JUNK_BUILT_IN_EXTENSIONS,
     });
     expect(result.issues).toEqual([]);
     expect(result.loaded.map((entry) => entry.id)).toEqual(["hunk-viewed"]);

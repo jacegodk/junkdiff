@@ -5,6 +5,7 @@ import { extendVcsCatalog } from "../core/vcs";
 import type { VcsCatalog } from "../core/vcs/types";
 import { resolveExtensionVcsAdapters } from "../extensions/apply";
 import { bindExtensionEventBus, retireExtensionLoadResult } from "../extensions/events";
+import { JUNK_BUILT_IN_EXTENSIONS } from "../extensions/default/builtIn";
 import { loadStartupExtensions } from "../extensions/startup";
 import type { ExtensionNotificationHub } from "../extensions/notifications";
 import type { ExtensionLoadResult } from "../extensions/types";
@@ -95,6 +96,7 @@ export async function resolveConfiguredExtensions(
       cliExtensionPaths: configured.input.options.extensionPaths,
       projectRoot: configured.projectRoot,
       reservedExtensionIds: options.baseVcsCatalog.reservedIds,
+      builtInExtensions: JUNK_BUILT_IN_EXTENSIONS,
       notifications: options.notifications ?? options.previousLoad?.notifications,
       previousLoad: options.previousLoad,
       deferEventBusBinding: true,
@@ -123,6 +125,7 @@ export async function resolveConfiguredExtensions(
         cliExtensionPaths: configured.input.options.extensionPaths,
         projectRoot: configured.projectRoot,
         reservedExtensionIds: options.baseVcsCatalog.reservedIds,
+        builtInExtensions: JUNK_BUILT_IN_EXTENSIONS,
         notifications: extensions.notifications,
         previousLoad: extensions,
         onProvisionalLoad: ownProvisionalLoad,
