@@ -39,26 +39,27 @@ export function worktreePickerItems(
 }
 
 /**
- * Base rows for one worktree: the whole branch against the default branch's merge-base, and the
- * unpushed part against the upstream when that differs from HEAD. Zero rows means "plain
- * working-tree diff"; one row needs no dialog.
+ * Base rows for one worktree: the unpushed part against the upstream when that differs from HEAD
+ * (first, and so preselected: the usual question is "what have I not pushed yet"), then the whole
+ * branch against the default branch's merge-base. Zero rows means "plain working-tree diff"; one
+ * row needs no dialog.
  */
 export function basePickerItems(bases: GitReviewBases): ReviewPickerItem[] {
   const items: ReviewPickerItem[] = [];
-  if (bases.defaultBranch && bases.defaultBase) {
-    items.push({
-      id: "default",
-      label: `whole branch: vs ${bases.defaultBranch} (merge-base)`,
-      description: bases.defaultBase.slice(0, 8),
-      base: bases.defaultBase,
-    });
-  }
   if (bases.upstream) {
     items.push({
       id: "upstream",
       label: `unpushed only: vs ${bases.upstream}`,
       description: "",
       base: bases.upstream,
+    });
+  }
+  if (bases.defaultBranch && bases.defaultBase) {
+    items.push({
+      id: "default",
+      label: `whole branch: vs ${bases.defaultBranch} (merge-base)`,
+      description: bases.defaultBase.slice(0, 8),
+      base: bases.defaultBase,
     });
   }
   return items;

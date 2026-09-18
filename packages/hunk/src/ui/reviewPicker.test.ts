@@ -59,7 +59,7 @@ describe("worktreePickerItems", () => {
 });
 
 describe("basePickerItems", () => {
-  test("whole-branch row needs a default base; upstream row needs a differing upstream", () => {
+  test("upstream row first when the upstream differs, then the whole-branch row when a default base exists", () => {
     expect(basePickerItems({ defaultBranch: null, defaultBase: null, upstream: null })).toEqual([]);
     expect(
       basePickerItems({ defaultBranch: "main", defaultBase: "abcdef0123456789", upstream: null }),
@@ -78,8 +78,8 @@ describe("basePickerItems", () => {
         upstream: "origin/feat",
       }).map((item) => [item.id, item.base]),
     ).toEqual([
-      ["default", "abcdef0123456789"],
       ["upstream", "origin/feat"],
+      ["default", "abcdef0123456789"],
     ]);
   });
 });
