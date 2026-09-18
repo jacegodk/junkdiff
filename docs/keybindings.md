@@ -160,6 +160,7 @@ Review and shared commands:
 | `hunk.view.layoutUnified`                      | Unified layout                                 | `1`                          |
 | `hunk.view.openThemeSelector`                  | Choose theme                                   | `t`                          |
 | `hunk.view.toggleAgentNotes`                   | Toggle agent notes                             | `a`                          |
+| `hunk.view.toggleHandledNotes`                 | Toggle handled notes                           | `H`                          |
 | `hunk.view.toggleCopyDecorations`              | Toggle copy decorations                        | _(none)_                     |
 | `hunk.view.toggleFilesPane`                    | Toggle files pane                              | `s`                          |
 | `hunk.view.toggleHunkHeaders`                  | Toggle hunk headers                            | `m`                          |

@@ -224,6 +224,10 @@ export interface TerminalReview {
   reviewNoteCount: number;
   reviewNoteSummaries: SessionReviewNoteSummary[];
   showAgentNotes: boolean;
+  /** junk: whether notes tagged `handled` are shown. */
+  showHandledNotes: boolean;
+  /** junk: flip `showHandledNotes`. */
+  toggleHandledNotes: () => void;
   userNotesByFileId: Record<string, UserReviewNote[]>;
   lineCursor: LineCursor | null;
   /** Read the current cursor synchronously between terminal key events. */
@@ -472,7 +476,7 @@ export function useTerminalReview({
       new Map(
         selectVisibleThreadedStoredReviewNotes(state).map((item) => [item.entry.note.id, item]),
       ),
-    [state.liveNotes, state.showAgentNotes, state.userNotes],
+    [state.liveNotes, state.showAgentNotes, state.showHandledNotes, state.userNotes],
   );
   const storedNotesByFileId = useMemo(
     () =>
@@ -919,6 +923,14 @@ export function useTerminalReview({
       runIntent(intent);
     }
   }, [lowerCommand, runIntent]);
+
+  /** junk: show or hide the notes tagged `handled`, a session-local view toggle. */
+  const toggleHandledNotes = useCallback(() => {
+    store.dispatch({
+      type: "notes/set-handled-visibility",
+      visible: !store.getSnapshot().showHandledNotes,
+    });
+  }, [store]);
 
   /** Start one full-source load and mirror its progress into review state as a status. */
   const startSourceLoad = useCallback(
@@ -1729,6 +1741,8 @@ export function useTerminalReview({
     reviewNoteCount: reviewNoteSummaries.length,
     reviewNoteSummaries,
     showAgentNotes: state.showAgentNotes,
+    showHandledNotes: state.showHandledNotes,
+    toggleHandledNotes,
     userNotesByFileId,
     scrollToNote,
     selectedFile,

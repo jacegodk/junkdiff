@@ -145,6 +145,7 @@ export interface BuildAppCommandsOptions {
   clearSelection?: () => void;
   startUserNote: () => void;
   toggleAgentNotes: () => void;
+  toggleHandledNotes: () => void;
   toggleCopyDecorations: () => void;
   toggleFocusArea: () => void;
   toggleGapForSelectedHunk: () => void;
@@ -271,6 +272,7 @@ function builtinCommandHandlers(
     "hunk.app.openReviewPicker": { run: () => options.openReviewPicker() },
     "hunk.view.openThemeSelector": { run: () => options.openThemeSelector() },
     "hunk.view.toggleAgentNotes": { run: () => options.toggleAgentNotes() },
+    "hunk.view.toggleHandledNotes": { run: () => options.toggleHandledNotes() },
     "hunk.view.toggleLineNumbers": { run: () => options.toggleLineNumbers() },
     "hunk.view.toggleLineWrap": { run: () => options.toggleLineWrap() },
     "hunk.view.toggleMenuBar": { run: () => options.toggleMenuBar() },
@@ -376,6 +378,7 @@ const NOOP_COMMAND_OPTIONS: BuildAppCommandsOptions = (() => {
     clearSelection: noop,
     startUserNote: noop,
     toggleAgentNotes: noop,
+    toggleHandledNotes: noop,
     toggleCopyDecorations: noop,
     toggleFocusArea: noop,
     toggleGapForSelectedHunk: noop,

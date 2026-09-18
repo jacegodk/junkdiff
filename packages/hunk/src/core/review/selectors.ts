@@ -277,7 +277,7 @@ export interface ReviewVisibleThreadedStoredNote extends ReviewThreadedStoredNot
 
 /** Apply shared resolution and agent-note visibility policies to one threaded stream. */
 export function selectVisibleThreadedStoredReviewNotes(
-  state: Pick<ReviewState, "liveNotes" | "showAgentNotes" | "userNotes">,
+  state: Pick<ReviewState, "liveNotes" | "showAgentNotes" | "showHandledNotes" | "userNotes">,
 ): ReviewVisibleThreadedStoredNote[] {
   const threaded = selectThreadedStoredReviewNotes(state);
   const nearestVisibleDepth = new Map<string, number>();
@@ -296,7 +296,7 @@ export function selectVisibleThreadedStoredReviewNotes(
       : undefined;
     if (
       isRenderableStoredReviewNote(entry) &&
-      reviewNoteVisibleByPolicy(entry.note, state.showAgentNotes)
+      reviewNoteVisibleByPolicy(entry.note, state.showAgentNotes, state.showHandledNotes)
     ) {
       const visibleDepth = parentDepth === undefined ? 0 : parentDepth + 1;
       nearestVisibleDepth.set(entry.note.id, visibleDepth);
@@ -452,6 +452,7 @@ type ActiveNoteState = Pick<
   | "liveNotes"
   | "selection"
   | "showAgentNotes"
+  | "showHandledNotes"
   | "userNotes"
 >;
 

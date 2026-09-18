@@ -28,6 +28,8 @@ export type ReviewAction =
     }
   | { type: "filter/set"; filter: string }
   | { type: "notes/set-visibility"; visible: boolean }
+  /** junk: show or hide the notes tagged `handled`. */
+  | { type: "notes/set-handled-visibility"; visible: boolean }
   | { type: "notes/add-live"; notes: readonly ReviewStoredNote[] }
   | { type: "notes/remove-live"; noteId: string }
   /** Clear mutable notes for one file, or for the whole review when no file is named. */

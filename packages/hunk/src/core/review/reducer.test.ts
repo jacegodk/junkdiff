@@ -519,6 +519,29 @@ describe("drafts", () => {
     expect(saved.activeNoteId).toBe("user-1");
   });
 
+  test("hiding handled notes drops focus from a handled active note and nothing else", () => {
+    const started = reduceReviewState(createTestReviewState(), { type: "draft/start", draft });
+    const handledNote = createTestStoredNote({ id: "user-h", fileKey: "alpha", source: "user" });
+    handledNote.note.tags = ["handled"];
+    const saved = reduceReviewState(started, { type: "draft/save", note: handledNote });
+    expect(saved.showHandledNotes).toBe(true);
+    expect(saved.activeNoteId).toBe("user-h");
+
+    const hidden = reduceReviewState(saved, {
+      type: "notes/set-handled-visibility",
+      visible: false,
+    });
+    expect(hidden.showHandledNotes).toBe(false);
+    expect(hidden.activeNoteId).toBeNull();
+    expect(
+      reduceReviewState(hidden, { type: "notes/set-handled-visibility", visible: false }),
+    ).toBe(hidden);
+    expect(
+      reduceReviewState(hidden, { type: "notes/set-handled-visibility", visible: true })
+        .showHandledNotes,
+    ).toBe(true);
+  });
+
   test("replacing user notes installs the given set and keeps focus only on a surviving note", () => {
     const started = reduceReviewState(createTestReviewState(), { type: "draft/start", draft });
     const saved = reduceReviewState(started, {

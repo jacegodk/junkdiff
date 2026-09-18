@@ -193,6 +193,20 @@ export function reduceReviewState(state: ReviewState, action: ReviewAction): Rev
           !action.visible && activeNote?.note.source !== "user" ? null : state.activeNoteId,
       };
     }
+    case "notes/set-handled-visibility": {
+      if (action.visible === state.showHandledNotes) {
+        return state;
+      }
+      const activeNote = [...state.liveNotes, ...state.userNotes].find(
+        (entry) => entry.note.id === state.activeNoteId,
+      );
+      const activeHidden = !action.visible && activeNote?.note.tags?.includes("handled");
+      return {
+        ...state,
+        showHandledNotes: action.visible,
+        activeNoteId: activeHidden ? null : state.activeNoteId,
+      };
+    }
     case "notes/add-live":
       return action.notes.length === 0
         ? state

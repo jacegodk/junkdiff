@@ -164,13 +164,25 @@ describe("saved review notes", () => {
     );
     let setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 120, height: 30 });
     try {
-      const frame = await waitForFrame(setup, (f) => f.includes("already handled"));
+      let frame = await waitForFrame(setup, (f) => f.includes("already handled"));
       expect(frame).toContain("still open");
       expect(frame).toMatch(/Your note · now · handled/);
       expect(Object.keys(JSON.parse(readFileSync(notesPath, "utf8")).notes).sort()).toEqual([
         "user:1",
         "user:2",
       ]);
+      // H hides the handled note only; a second H brings it back.
+      await act(async () => {
+        await setup.mockInput.typeText("H");
+      });
+      frame = await waitForFrame(setup, (f) => !f.includes("already handled"));
+      expect(frame).not.toContain("already handled");
+      expect(frame).toContain("still open");
+      await act(async () => {
+        await setup.mockInput.typeText("H");
+      });
+      frame = await waitForFrame(setup, (f) => f.includes("already handled"));
+      expect(frame).toContain("already handled");
     } finally {
       await act(async () => {
         setup.renderer.destroy();

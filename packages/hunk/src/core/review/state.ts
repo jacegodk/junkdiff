@@ -44,9 +44,11 @@ export function isRenderableStoredReviewNote(entry: ReviewStoredNote) {
  * (`docs/browser-review-seam-audit.md`, B9).
  */
 export function reviewNoteVisibleByPolicy(
-  note: Pick<ReviewNoteV1, "source">,
+  note: Pick<ReviewNoteV1, "source" | "tags">,
   showAgentNotes: boolean,
+  showHandledNotes = true,
 ) {
+  if (!showHandledNotes && note.tags?.includes("handled")) return false;
   return showAgentNotes || note.source === "user";
 }
 
@@ -194,6 +196,8 @@ export interface ReviewState {
   reveal: ReviewRevealIntent;
   filter: string;
   showAgentNotes: boolean;
+  /** junk: whether notes tagged `handled` are shown; a session-local toggle, on by default. */
+  showHandledNotes: boolean;
   /** Stable identity of the stored note the reviewer explicitly selected. */
   activeNoteId: string | null;
   /** Notes contributed by agents during the review, in arrival order. */
@@ -208,7 +212,7 @@ export interface ReviewState {
 /** Create the first authoritative semantic state for one review document. */
 export function createInitialReviewState(
   document: ReviewDocumentV1,
-  options: { showAgentNotes?: boolean } = {},
+  options: { showAgentNotes?: boolean; showHandledNotes?: boolean } = {},
 ): ReviewState {
   return {
     document,
@@ -224,6 +228,7 @@ export function createInitialReviewState(
     },
     filter: "",
     showAgentNotes: options.showAgentNotes ?? false,
+    showHandledNotes: options.showHandledNotes ?? true,
     activeNoteId: null,
     liveNotes: [],
     userNotes: [],

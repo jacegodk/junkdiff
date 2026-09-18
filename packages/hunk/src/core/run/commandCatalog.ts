@@ -457,6 +457,15 @@ const BUILTIN_COMMANDS = [
     closesMenu: true,
   },
   {
+    id: "hunk.view.toggleHandledNotes",
+    title: "Toggle handled notes",
+    category: "view",
+    defaultKeys: ["H"],
+    locus: "client-local",
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
     id: "hunk.view.toggleLineNumbers",
     title: "Toggle line numbers",
     category: "view",

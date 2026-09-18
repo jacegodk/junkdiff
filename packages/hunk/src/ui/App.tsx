@@ -1366,6 +1366,7 @@ export function App({
           if (!selectionActionsRef.current?.comment()) startUserNote();
         },
         toggleAgentNotes,
+        toggleHandledNotes: review.toggleHandledNotes,
         toggleCopyDecorations,
         toggleFocusArea,
         toggleGapForSelectedHunk: review.toggleSelectedHunkGap,
@@ -1431,6 +1432,7 @@ export function App({
     layoutMode,
     filesPaneVisible,
     showAgentNotes,
+    showHandledNotes: review.showHandledNotes,
     showHelp,
     showHunkHeaders,
     showLineNumbers,
@@ -1710,6 +1712,7 @@ export function App({
             draftNoteFocused={focusArea === "note"}
             separatorWidth={diffSeparatorWidth}
             showAgentNotes={showAgentNotes}
+            showHandledNotes={review.showHandledNotes}
             showLineNumbers={showLineNumbers}
             showHunkHeaders={showHunkHeaders}
             sourceStatusByFileId={review.sourceStatusByFileId}

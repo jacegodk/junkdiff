@@ -345,6 +345,7 @@ export function DiffPane({
   showTopChrome,
   skipInitialIntermediateRender = false,
   showAgentNotes,
+  showHandledNotes = true,
   showLineNumbers,
   showHunkHeaders,
   sourceStatusByFileId = EMPTY_SOURCE_STATUS_BY_FILE_ID,
@@ -430,6 +431,8 @@ export function DiffPane({
   /** Avoid clearing another surface when this pane mounts dynamically in the shared renderer. */
   skipInitialIntermediateRender?: boolean;
   showAgentNotes: boolean;
+  /** junk: whether notes tagged `handled` are drawn; defaults to shown. */
+  showHandledNotes?: boolean;
   showLineNumbers: boolean;
   showHunkHeaders: boolean;
   sourceStatusByFileId?: Record<string, FileSourceStatus>;
@@ -627,7 +630,11 @@ export function DiffPane({
         // One shared visibility rule over the normalized note source, so the terminal and
         // any other surface hide the same notes when the layer is off.
         (annotation) =>
-          reviewNoteVisibleByPolicy({ source: reviewNoteSource(annotation) }, showAgentNotes),
+          reviewNoteVisibleByPolicy(
+            { source: reviewNoteSource(annotation), tags: annotation.tags },
+            showAgentNotes,
+            showHandledNotes,
+          ),
       );
       // Every note kind resolves its anchor through the shared resolver here, once, so the
       // render plan places sidecar annotations, agent comments, reviewer notes, and the open
@@ -823,6 +830,7 @@ export function DiffPane({
     onUpdateDraftNote,
     noteActionKeyLabels,
     showAgentNotes,
+    showHandledNotes,
   ]);
 
   const fileViewRenderPlans = useMemo(() => {
