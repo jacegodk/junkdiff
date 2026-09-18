@@ -325,7 +325,7 @@ describe("registration", () => {
     expect(fake.commands.get("searchEdit")?.command.key).toBeUndefined();
     expect(fake.commands.get("searchClear")?.command.key).toBeUndefined();
 
-    expect(fake.keyboardModes.size).toBe(2);
+    expect(fake.keyboardModes.size).toBe(3);
     expect(fake.keyboardModes.get("single")).toBeDefined();
     expect(fake.keyboardModes.get("search-prompt")).toBeDefined();
 
@@ -1479,9 +1479,45 @@ describe("search", () => {
 
     expect(getSearchState().prompt).toEqual({ open: true, draft: "foo" });
     expect(calls.paneOpens).toEqual(["search"]);
-    // Editing does not touch the query itself until submitted; that stays the driver of the
-    // "search with an active query moves to the next hit" branch of the `search` command.
+    // Opening the edit prompt ends the running search (its marks and mode go first, so the
+    // prompt builds on a clean slate); the old query survives only as the prefilled draft.
+    expect(getSearchState().query).toBe("");
+    expect(calls.paneCloses).toEqual(["search"]);
+  });
+
+  test("a running search enters the search-active mode, and leaving that mode (Esc) clears the search", async () => {
+    const fake = createFakeHunk();
+    registerExtension(fake.hunk);
+    const files = [makeFile("1", "a.ts", { patch: "@@ -1,1 +1,1 @@\n-x\n+foo bar\n" })];
+    loadChangeset(fake, files);
+
+    const calls = createCalls();
+    const pending = fake.commands.get("search")!.handler(commandContext(files[0]!, [], [], calls));
+    const prompt = fake.keyboardModes.get("search-prompt")!;
+    prompt.onKey({ sequence: "foo" } as ExtensionKeyEvent, modeContext(calls));
+    expect(prompt.onKey({ name: "enter" } as ExtensionKeyEvent, modeContext(calls))).toBe("exit");
+    calls.modeActive = false;
+    await pending;
     expect(getSearchState().query).toBe("foo");
+    expect(calls.enteredModes).toEqual(["search-prompt", "search-active"]);
+
+    // Every key passes through the active mode, so ctrl+n, V, F and friends keep working.
+    const active = fake.keyboardModes.get("search-active")!;
+    expect(active.onKey({ name: "v", shift: true } as ExtensionKeyEvent, modeContext(calls))).toBe(
+      "pass",
+    );
+
+    // Esc is host-owned: hunk exits the mode, and the exit clears the search through the
+    // command context that started it.
+    calls.modeActive = false;
+    active.onExit!(modeContext(calls));
+    expect(getSearchState().query).toBe("");
+    expect(getSearchState().hits).toEqual([]);
+    expect(calls.paneCloses).toEqual(["search"]);
+    expect(calls.highlightRefreshes).toEqual(["search", "search"]);
+    // A second exit (nothing running) is a no-op.
+    active.onExit!(modeContext(calls));
+    expect(calls.paneCloses).toEqual(["search"]);
   });
 
   test("the search highlighter marks match/current per patch line, and skips a full-view file", () => {

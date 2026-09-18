@@ -94,6 +94,14 @@ const FILES_PANE_ID = "files";
 const SINGLE_MODE_ID = "single";
 const SEARCH_PANE_ID = "search";
 const SEARCH_PROMPT_MODE_ID = "search-prompt";
+/**
+ * Active while a search has hits: passes every key through, so the only thing it owns is the
+ * host's Esc, which exits it and clears the search. Entering any other mode (the prompt, single
+ * file) exits it too, with the same effect.
+ */
+const SEARCH_ACTIVE_MODE_ID = "search-active";
+/** The command context the active search was started from; its controls clear it on Esc. */
+let searchCtx: ExtensionCommandContext | null = null;
 const SEARCH_HIGHLIGHTER_ID = "search";
 /** Hunk rejects a highlighter's whole mark set for a file above this; keep well under it. */
 const MAX_MARKS_PER_FILE = 2000;
@@ -165,14 +173,20 @@ function applySearch(ctx: ExtensionCommandContext, query: string): void {
   const hit = currentHit();
   if (hit) ctx.navigation.revealLine(hit.fileId, hit.side, hit.line);
   else ctx.notify("No hits", "info");
+  searchCtx = ctx;
+  if (!ctx.keyboardModes.isActive(SEARCH_ACTIVE_MODE_ID)) {
+    ctx.keyboardModes.enterMode(SEARCH_ACTIVE_MODE_ID);
+  }
 }
 
-/** Clear the active search, its highlights, and its bottom-bar pane. */
+/** Clear the active search, its highlights, its bottom-bar pane, and the mode that Esc exits. */
 function applyClear(ctx: ExtensionCommandContext): void {
   clearSearch();
+  searchCtx = null;
   ctx.highlights.refresh(SEARCH_HIGHLIGHTER_ID);
   ctx.fileViews.refresh(FULL_VIEW_ID);
   ctx.panes.close(SEARCH_PANE_ID);
+  if (ctx.keyboardModes.isActive(SEARCH_ACTIVE_MODE_ID)) ctx.keyboardModes.exitMode();
 }
 
 /**
@@ -208,6 +222,9 @@ function moveHit(ctx: ExtensionCommandContext, direction: 1 | -1): void {
  */
 async function runPrompt(ctx: ExtensionCommandContext, initial: string): Promise<void> {
   if (getSearchState().prompt.open) return;
+  // The prompt mode would replace the search-active mode and clear the search mid-setup, closing
+  // the pane this prompt is about to use; clear first, then build the prompt on a clean slate.
+  if (getSearchState().query !== "") applyClear(ctx);
   // A resolver could be dangling here only from a bug elsewhere; settle it before starting a
   // fresh one so that promise never hangs forever.
   if (promptResolve) {
@@ -791,6 +808,18 @@ export default function (hunk: HunkExtensionAPI) {
         promptResolve(null);
         promptResolve = null;
       }
+    },
+  });
+
+  hunk.registerKeyboardMode({
+    id: SEARCH_ACTIVE_MODE_ID,
+    title: "Search",
+    onKey: () => "pass",
+    // Esc (host-owned) or a replacement by another mode lands here: the search is over. The
+    // command context that started it still holds the controls that take its marks and bar down.
+    onExit() {
+      if (getSearchState().query !== "" && searchCtx) applyClear(searchCtx);
+      searchCtx = null;
     },
   });
 
