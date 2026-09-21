@@ -68,7 +68,12 @@ export type AppCommandReviewEffect =
   /** junk: flip the `handled` tag on the active stored note. */
   | { kind: "notes/toggle-handled-active" }
   /** Flip the gap the shared policy says this selection reaches. */
-  | { kind: "expansion/toggle-selected-gap" };
+  | { kind: "expansion/toggle-selected-gap" }
+  /** junk: show or hide unchanged lines on both sides of the selected hunk, 10 per count. */
+  | { kind: "expansion/reveal-around-selected"; direction: 1 | -1 };
+
+/** junk: unchanged lines one `x` / `X` press reveals or hides on each side of the hunk. */
+export const CONTEXT_REVEAL_STEP = 10;
 
 export interface AppCommandCatalogEntry {
   /** Stable canonical identifier, `hunk.<category>.<name>` for every built-in. */
@@ -234,7 +239,7 @@ const BUILTIN_COMMANDS = [
     id: "hunk.review.toggleActiveNoteHandled",
     title: "Flag active review note handled",
     category: "review",
-    defaultKeys: ["X"],
+    defaultKeys: ["h"],
     locus: "semantic",
     review: { kind: "notes/toggle-handled-active" },
     publicToExtensions: true,
@@ -302,7 +307,7 @@ const BUILTIN_COMMANDS = [
     id: "hunk.review.stepDown",
     title: "Move down one line or note",
     category: "review",
-    defaultKeys: ["down", "j"],
+    defaultKeys: ["j"],
     locus: "client-local",
     verticalDirection: 1,
     publicToExtensions: true,
@@ -311,7 +316,25 @@ const BUILTIN_COMMANDS = [
     id: "hunk.review.stepUp",
     title: "Move up one line or note",
     category: "review",
-    defaultKeys: ["up", "k"],
+    defaultKeys: ["k"],
+    locus: "client-local",
+    verticalDirection: -1,
+    publicToExtensions: true,
+  },
+  {
+    id: "hunk.review.scrollLineDown",
+    title: "Scroll down one line",
+    category: "review",
+    defaultKeys: ["down"],
+    locus: "client-local",
+    verticalDirection: 1,
+    publicToExtensions: true,
+  },
+  {
+    id: "hunk.review.scrollLineUp",
+    title: "Scroll up one line",
+    category: "review",
+    defaultKeys: ["up"],
     locus: "client-local",
     verticalDirection: -1,
     publicToExtensions: true,
@@ -534,6 +557,26 @@ const BUILTIN_COMMANDS = [
     closesMenu: true,
   },
   {
+    id: "hunk.review.expandAroundHunk",
+    title: "Show 10 more unchanged lines around the selected hunk",
+    category: "review",
+    defaultKeys: ["x"],
+    locus: "semantic",
+    review: { kind: "expansion/reveal-around-selected", direction: 1 },
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
+    id: "hunk.review.shrinkAroundHunk",
+    title: "Hide 10 unchanged lines around the selected hunk",
+    category: "review",
+    defaultKeys: ["X"],
+    locus: "semantic",
+    review: { kind: "expansion/reveal-around-selected", direction: -1 },
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
     id: "hunk.review.editSelectedFile",
     title: "Open the selected file in your editor",
     category: "review",
@@ -747,6 +790,16 @@ export function lowerAppCommandToReviewIntent(
         type: "notes/set-handled",
         noteId: entry.note.id,
         handled: !entry.note.tags?.includes("handled"),
+      };
+    }
+    case "expansion/reveal-around-selected": {
+      const { fileKey, hunkIndex } = selectNormalizedSelection(state);
+      if (fileKey === null) return undefined;
+      return {
+        type: "expansion/reveal-around",
+        fileKey,
+        hunkIndex,
+        delta: entry.review.direction * CONTEXT_REVEAL_STEP * count,
       };
     }
     case "expansion/toggle-selected-gap": {

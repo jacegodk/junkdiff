@@ -1,3 +1,4 @@
+import type { ReviewGapReveal } from "../../core/review/expansion";
 import { reviewExpansionSide } from "../../core/review/expansion";
 import { DEFAULT_TAB_WIDTH } from "../../core/run/tabWidth";
 import { DEFAULT_HUNK_GAP } from "../../core/run/reviewGap";
@@ -25,6 +26,8 @@ export interface DiffSectionRowPlan {
 
 export interface BuildDiffSectionRowPlanOptions {
   expandedKeys?: ReadonlySet<string>;
+  /** junk: gaps showing only some of their lines. */
+  revealedGaps?: ReadonlyMap<string, ReviewGapReveal>;
   file: DiffFile | undefined;
   highlightedDiff?: HighlightedDiffCode | null;
   layout: Exclude<LayoutMode, "auto">;
@@ -53,6 +56,7 @@ function buildBaseRows(
 /** Build the shared file-level diff plan consumed by rendering and geometry measurement. */
 export function buildDiffSectionRowPlan({
   expandedKeys = EMPTY_EXPANDED_GAP_KEYS,
+  revealedGaps,
   file,
   highlightedDiff = null,
   layout,
@@ -75,6 +79,7 @@ export function buildDiffSectionRowPlan({
   const rows = expandCollapsedRows(baseRows, {
     layout,
     expandedKeys,
+    revealedGaps,
     sourceLineSpans,
     sourceStatus,
     tabWidth,

@@ -169,6 +169,40 @@ describe("expandCollapsedRows", () => {
     expect(third.right.spans[0]?.text).toBe("gamma");
   });
 
+  test("junk: a partly revealed gap shows head and tail lines around a smaller collapsed row", () => {
+    // Gap covers source lines 1-6 (alpha..zeta); show one from the top and two from the bottom.
+    const rows = expandCollapsedRows(
+      [makeCollapsedRow("before", 1, [1, 6], [1, 6]), makeHunkHeader(1)],
+      {
+        layout: "unified",
+        expandedKeys: new Set(),
+        revealedGaps: new Map([[reviewGapId("before", 1), { head: 1, tail: 2 }]]),
+        sourceStatus: { kind: "loaded", text: SOURCE },
+      },
+    );
+    expect(
+      rows.map((row) =>
+        row.type === "unified-line"
+          ? `${row.cell.newLineNumber}:${row.cell.spans.map((span) => span.text).join("")}`
+          : row.type === "collapsed"
+            ? `${row.text} ${row.newRange[0]}-${row.newRange[1]}`
+            : row.type,
+      ),
+    ).toEqual(["1:alpha", "3 unchanged lines 2-4", "5:epsilon", "6:zeta", "hunk-header"]);
+    // Every shown line still names its gap, so the line cursor and notes resolve it.
+    expect(
+      rows.filter((row) => row.type === "unified-line").every((row) => row.expandedGapKey),
+    ).toBe(true);
+    // A reveal that covers the whole gap leaves no collapsed row.
+    const all = expandCollapsedRows([makeCollapsedRow("before", 1, [1, 6], [1, 6])], {
+      layout: "unified",
+      expandedKeys: new Set(),
+      revealedGaps: new Map([[reviewGapId("before", 1), { head: 3, tail: 3 }]]),
+      sourceStatus: { kind: "loaded", text: SOURCE },
+    });
+    expect(all.map((row) => row.type)).toEqual(Array(6).fill("unified-line"));
+  });
+
   test("inserts unified-line context rows when layout is unified", () => {
     const rows: DiffRow[] = [makeCollapsedRow("before", 0, [2, 3], [2, 3]), makeHunkHeader(0)];
 

@@ -214,7 +214,7 @@ describe("saved review notes", () => {
     }
   });
 
-  test("X flags the active note handled and writes the flag to the notes file, X again clears it", async () => {
+  test("h flags the active note handled and writes the flag to the notes file, h again clears it", async () => {
     const dir = createRepo();
     const notesPath = resolveSavedNotesPath(join(stateHome, "hunk"), dir, "main");
     mkdirSync(dirname(notesPath), { recursive: true });
@@ -249,7 +249,7 @@ describe("saved review notes", () => {
         await setup.mockInput.typeText("}");
       });
       await act(async () => {
-        await setup.mockInput.typeText("X");
+        await setup.mockInput.typeText("h");
       });
       let frame = await waitForFrame(setup, (f) => /Your note · now · handled/.test(f));
       expect(frame).toMatch(/Your note · now · handled/);
@@ -262,7 +262,7 @@ describe("saved review notes", () => {
       expect(saved).toBe(true);
 
       await act(async () => {
-        await setup.mockInput.typeText("X");
+        await setup.mockInput.typeText("h");
       });
       frame = await waitForFrame(setup, (f) => !/· handled/.test(f));
       expect(frame).not.toMatch(/· handled/);

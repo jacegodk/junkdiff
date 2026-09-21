@@ -509,6 +509,12 @@ const ACTION_PARSERS: Record<ReviewIntentType, (record: Record<string, unknown>)
     hasExactKeys(record, ["type", "fileKey", "gapId"]) &&
     isIdentifier(record.fileKey) &&
     isIdentifier(record.gapId),
+  "expansion/reveal-around": (record) =>
+    hasExactKeys(record, ["type", "fileKey", "hunkIndex", "delta"]) &&
+    isIdentifier(record.fileKey) &&
+    isIndex(record.hunkIndex) &&
+    Number.isSafeInteger(record.delta) &&
+    record.delta !== 0,
 };
 
 /**

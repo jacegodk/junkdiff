@@ -1,3 +1,4 @@
+import type { ReviewGapReveal } from "../../core/review/expansion";
 import { DEFAULT_HUNK_GAP } from "../../core/run/reviewGap";
 import { DEFAULT_TAB_WIDTH } from "../../core/run/tabWidth";
 import type { DiffFile } from "../../core/changeset/model";
@@ -96,12 +97,18 @@ function notesCacheKey(visibleAgentNotes: VisibleAgentNote[]) {
 function expansionCacheKey(
   expandedKeys: ReadonlySet<string>,
   sourceStatus: FileSourceStatus | undefined,
+  revealedGaps: ReadonlyMap<string, ReviewGapReveal> | undefined,
 ) {
-  if (expandedKeys.size === 0) {
+  if (expandedKeys.size === 0 && (revealedGaps?.size ?? 0) === 0) {
     return "";
   }
 
-  const sortedKeys = [...expandedKeys].sort().join(",");
+  const sortedKeys = [
+    ...expandedKeys,
+    ...[...(revealedGaps ?? [])].map(([key, reveal]) => `${key}=${reveal.head}+${reveal.tail}`),
+  ]
+    .sort()
+    .join(",");
   const statusKey =
     sourceStatus === undefined
       ? "pending"
@@ -157,6 +164,7 @@ function setCachedSectionGeometry(
 /** Resolve planned rows only for uncommon consumers that need row content after geometry exists. */
 function createLazyPlannedRowsResolver({
   expandedKeys,
+  revealedGaps,
   file,
   layout,
   showHunkHeaders,
@@ -167,6 +175,7 @@ function createLazyPlannedRowsResolver({
   visibleAgentNotes,
 }: {
   expandedKeys: ReadonlySet<string>;
+  revealedGaps: ReadonlyMap<string, ReviewGapReveal> | undefined;
   file: DiffFile;
   layout: Exclude<LayoutMode, "auto">;
   showHunkHeaders: boolean;
@@ -182,6 +191,7 @@ function createLazyPlannedRowsResolver({
   // note callbacks so later model additions cannot silently fall outside the snapshot boundary.
   const rowPlanInputs = {
     expandedKeys: expandedKeys.size === 0 ? EMPTY_EXPANDED_GAP_KEYS : new Set(expandedKeys),
+    revealedGaps: revealedGaps === undefined ? undefined : new Map(revealedGaps),
     file,
     layout,
     showHunkHeaders,
@@ -291,6 +301,7 @@ export function measureDiffSectionGeometry(
   reserveAddNoteColumn = false,
   tabWidth = DEFAULT_TAB_WIDTH,
   hunkGap = DEFAULT_HUNK_GAP,
+  revealedGaps: ReadonlyMap<string, ReviewGapReveal> | undefined = undefined,
 ): DiffSectionGeometry {
   if (file.metadata.hunks.length === 0) {
     return {
@@ -320,7 +331,7 @@ export function measureDiffSectionGeometry(
     theme.lineNumberBg,
     theme.lineNumberFg,
   ].join(":");
-  const cacheKey = `${file.id}:${layout}:${showHunkHeaders ? 1 : 0}:${themeCacheKey}:${width}:${showLineNumbers ? 1 : 0}:${wrapLines ? 1 : 0}:${reserveAddNoteColumn ? 1 : 0}:tabs:${tabWidth}:hunkGap:${hunkGap}${expansionCacheKey(expandedKeys, sourceStatus)}${notesCacheKey(visibleAgentNotes)}`;
+  const cacheKey = `${file.id}:${layout}:${showHunkHeaders ? 1 : 0}:${themeCacheKey}:${width}:${showLineNumbers ? 1 : 0}:${wrapLines ? 1 : 0}:${reserveAddNoteColumn ? 1 : 0}:tabs:${tabWidth}:hunkGap:${hunkGap}${expansionCacheKey(expandedKeys, sourceStatus, revealedGaps)}${notesCacheKey(visibleAgentNotes)}`;
   const cacheSlot = sectionGeometryCacheSlot(visibleAgentNotes);
   const cached = getCachedSectionGeometry(file, cacheSlot, cacheKey);
   if (cached) {
@@ -329,6 +340,7 @@ export function measureDiffSectionGeometry(
 
   const sectionRowPlan = buildDiffSectionRowPlan({
     expandedKeys,
+    revealedGaps,
     file,
     layout,
     showHunkHeaders,
@@ -409,6 +421,7 @@ export function measureDiffSectionGeometry(
 
   const resolvePlannedRows = createLazyPlannedRowsResolver({
     expandedKeys,
+    revealedGaps,
     file,
     layout,
     showHunkHeaders,

@@ -1,4 +1,8 @@
-import { reviewGapId } from "../../core/review/expansion";
+import {
+  clampReviewGapReveal,
+  reviewGapId,
+  type ReviewGapReveal,
+} from "../../core/review/expansion";
 import { normalizedReviewSourceLines } from "../../core/review/geometry";
 import { DEFAULT_TAB_WIDTH } from "../../core/run/tabWidth";
 import { sanitizeTerminalLine, sanitizeTerminalSpans } from "../../lib/terminalText";
@@ -22,6 +26,8 @@ export type FileSourceStatus =
 export interface ExpandCollapsedRowsOptions {
   layout: ExpansionLayout;
   expandedKeys: ReadonlySet<string>;
+  /** junk: gaps that show only `head` lines from their start and `tail` lines from their end. */
+  revealedGaps?: ReadonlyMap<string, ReviewGapReveal>;
   sourceStatus: FileSourceStatus | undefined;
   tabWidth?: number;
   /** Optional syntax-aware span resolver for a zero-based source line. */
@@ -122,13 +128,14 @@ export function expandCollapsedRows(
   const {
     layout,
     expandedKeys,
+    revealedGaps,
     sourceLineSpans,
     sourceStatus,
     tabWidth = DEFAULT_TAB_WIDTH,
     side = "new",
   } = options;
 
-  if (expandedKeys.size === 0) {
+  if (expandedKeys.size === 0 && (revealedGaps?.size ?? 0) === 0) {
     return rows;
   }
 
@@ -143,7 +150,8 @@ export function expandCollapsedRows(
     }
 
     const key = reviewGapId(row.position, row.hunkIndex);
-    if (!expandedKeys.has(key)) {
+    const reveal = expandedKeys.has(key) ? undefined : revealedGaps?.get(key);
+    if (!expandedKeys.has(key) && reveal === undefined) {
       result.push(row);
       continue;
     }
@@ -180,17 +188,12 @@ export function expandCollapsedRows(
       continue;
     }
 
-    result.push({
-      ...row,
-      text: expandedRowText(lineCount),
-    });
-
-    for (let offset = 0; offset < lineCount; offset += 1) {
+    const contextRow = (offset: number) => {
       const oldLineNumber = row.oldRange[0] + offset;
       const newLineNumber = row.newRange[0] + offset;
       const sourceLineNumber = (side === "old" ? oldLineNumber : newLineNumber) - 1;
       if (sourceLineNumber < 0 || sourceLineNumber >= sourceLines.length) {
-        break;
+        return undefined;
       }
 
       const text = sourceLines[sourceLineNumber];
@@ -198,27 +201,62 @@ export function expandCollapsedRows(
         ? sanitizeTerminalSpans(sourceLineSpans(text, sourceLineNumber))
         : spansFor(text, tabWidth);
 
-      result.push(
-        layout === "split"
-          ? buildSplitContextRow(
-              row.fileId,
-              row.hunkIndex,
-              row.position,
-              offset,
-              oldLineNumber,
-              newLineNumber,
-              spans,
-            )
-          : buildUnifiedContextRow(
-              row.fileId,
-              row.hunkIndex,
-              row.position,
-              offset,
-              oldLineNumber,
-              newLineNumber,
-              spans,
-            ),
-      );
+      return layout === "split"
+        ? buildSplitContextRow(
+            row.fileId,
+            row.hunkIndex,
+            row.position,
+            offset,
+            oldLineNumber,
+            newLineNumber,
+            spans,
+          )
+        : buildUnifiedContextRow(
+            row.fileId,
+            row.hunkIndex,
+            row.position,
+            offset,
+            oldLineNumber,
+            newLineNumber,
+            spans,
+          );
+    };
+
+    if (reveal !== undefined) {
+      // junk: a partly revealed gap shows its head lines, then the collapsed row for what is
+      // still hidden, then its tail lines, so the shown lines sit next to the hunks around it.
+      const { head, tail } = clampReviewGapReveal(reveal, lineCount);
+      const hidden = lineCount - head - tail;
+      for (let offset = 0; offset < head; offset += 1) {
+        const contextLine = contextRow(offset);
+        if (!contextLine) break;
+        result.push(contextLine);
+      }
+      if (hidden > 0) {
+        result.push({
+          ...row,
+          text: `${hidden} unchanged ${hidden === 1 ? "line" : "lines"}`,
+          oldRange: [row.oldRange[0] + head, row.oldRange[1] - tail],
+          newRange: [row.newRange[0] + head, row.newRange[1] - tail],
+        });
+      }
+      for (let offset = lineCount - tail; offset < lineCount; offset += 1) {
+        const contextLine = contextRow(offset);
+        if (!contextLine) break;
+        result.push(contextLine);
+      }
+      continue;
+    }
+
+    result.push({
+      ...row,
+      text: expandedRowText(lineCount),
+    });
+
+    for (let offset = 0; offset < lineCount; offset += 1) {
+      const contextLine = contextRow(offset);
+      if (!contextLine) break;
+      result.push(contextLine);
     }
   }
 

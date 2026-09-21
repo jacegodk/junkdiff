@@ -1374,6 +1374,7 @@ export function App({
         toggleCopyDecorations,
         toggleFocusArea,
         toggleGapForSelectedHunk: review.toggleSelectedHunkGap,
+        revealAroundSelectedHunk: review.revealAroundSelectedHunk,
         toggleHelp,
         toggleHunkHeaders,
         toggleLineNumbers,
@@ -1701,6 +1702,7 @@ export function App({
             copyDecorations={copyDecorations}
             diffContentWidth={diffContentWidth}
             expandedGapsByFileId={review.expandedGapsByFileId}
+            revealedGapsByFileId={review.revealedGapsByFileId}
             fileViews={fileViewLayouts}
             files={filteredFiles}
             semanticFileIdentities={semanticFileIdentities}

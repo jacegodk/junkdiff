@@ -139,7 +139,7 @@ describe("PTY notes", () => {
 
       await session.waitIdle({ timeout: 500 });
       for (let index = 0; index < 8; index += 1) {
-        await session.press("down");
+        await session.press("j");
       }
 
       const beforePushedDraft = await session.text({ immediate: true });
@@ -161,7 +161,7 @@ describe("PTY notes", () => {
       await session.press("escape");
       await harness.waitForSnapshot(session, (text) => !text.includes("Draft note"), 5_000);
       for (let index = 0; index < 8; index += 1) {
-        await session.press("down");
+        await session.press("j");
       }
 
       const beforeBottomDraft = await session.text({ immediate: true });
@@ -334,8 +334,8 @@ describe("PTY notes", () => {
       expect(firstActive).toContain("E edit");
       expect(firstActive).toContain("D delete");
 
-      await session.press("down");
-      await session.press("down");
+      await session.press("j");
+      await session.press("j");
       const secondActive = await harness.waitForSnapshot(
         session,
         (text) => {
@@ -752,7 +752,7 @@ describe("PTY notes", () => {
       await moveMouse(session, 9, 5);
       await session.waitForText(/\[\+\]/, { timeout: 5_000 });
 
-      await session.press("down");
+      await session.press("j");
       const afterKeyboard = await harness.waitForSnapshot(
         session,
         (text) => !text.includes("[+]"),
@@ -912,7 +912,7 @@ describe("PTY notes", () => {
 
       // Put the keyboard cursor on the deletion, then click the separate context row. Opening the
       // clicked draft must preserve the clicked row rather than the old keyboard-cursor anchor.
-      await session.press("down");
+      await session.press("j");
       const beforeDraft = await session.text({ immediate: true });
       const clickedRowBefore = lineIndexOf(beforeDraft, "keep = true");
       await revealAddNoteOnRow(session, clickedRowBefore);

@@ -66,6 +66,7 @@ describe("review action round trip", () => {
     { type: "filter/set", filter: "src/ui" },
     { type: "notes/set-visibility", visible: true },
     { type: "notes/set-handled", noteId: "user:1", handled: true },
+    { type: "expansion/reveal-around", fileKey: FILE_KEY, hunkIndex: 0, delta: 10 },
     { type: "notes/start-draft", fileKey: FILE_KEY, hunkIndex: 1 },
     { type: "notes/start-edit", noteId: "user:1" },
     { type: "notes/start-reply", noteId: "live:1" },

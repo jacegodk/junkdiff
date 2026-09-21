@@ -95,9 +95,10 @@ describe("built-in command chords", () => {
     expect(press({ name: "b", sequence: "b" })).toBe("hunk.review.pageUp");
     // Shift-Space pages backward, and plain space must not.
     expect(press({ name: "space", shift: true })).toBe("hunk.review.pageUp");
-    expect(press({ name: "down" })).toBe("hunk.review.stepDown");
+    // junk: the arrows scroll the viewport; j/k step the line cursor.
+    expect(press({ name: "down" })).toBe("hunk.review.scrollLineDown");
     expect(press({ name: "j", sequence: "j" })).toBe("hunk.review.stepDown");
-    expect(press({ name: "up" })).toBe("hunk.review.stepUp");
+    expect(press({ name: "up" })).toBe("hunk.review.scrollLineUp");
     expect(press({ name: "k", sequence: "k" })).toBe("hunk.review.stepUp");
     expect(press({ name: "d", sequence: "d" })).toBe("hunk.review.halfPageDown");
     expect(press({ name: "d", ctrl: true })).toBe("hunk.review.halfPageDown");
@@ -110,9 +111,9 @@ describe("built-in command chords", () => {
       "scrollDiff:-1,viewport",
       "scrollDiff:-1,viewport",
       "scrollDiff:-1,viewport",
+      "scrollDiff:1,step",
       "stepDiffLine:1",
-      "stepDiffLine:1",
-      "stepDiffLine:-1",
+      "scrollDiff:-1,step",
       "stepDiffLine:-1",
       "scrollDiff:1,half",
       "scrollDiff:1,half",

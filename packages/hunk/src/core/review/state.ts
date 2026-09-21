@@ -11,6 +11,7 @@
  * they read, so "which notes are visible" or "where does a note hang" gets one named
  * answer instead of an inline conditional per consumer.
  */
+import type { ReviewGapReveal } from "./expansion";
 import type {
   ReviewDocumentV1,
   ReviewLineAddressV1,
@@ -181,6 +182,8 @@ export interface ReviewExpandedGapState {
   fileKey: string;
   gapId: string;
   expanded: boolean;
+  /** junk: the part of a gap shown while `expanded` is false; absent when fully collapsed. */
+  reveal?: ReviewGapReveal;
 }
 
 /**

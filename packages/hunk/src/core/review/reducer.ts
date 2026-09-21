@@ -18,6 +18,7 @@ import {
   applyReviewRevealRequest,
   reviewRevealIntentsEqual,
   type ReviewDraftNote,
+  type ReviewExpandedGapState,
   type ReviewSourceStatus,
   type ReviewState,
   type ReviewStoredNote,
@@ -335,6 +336,37 @@ export function reduceReviewState(state: ReviewState, action: ReviewAction): Rev
         return state;
       }
       const gap = { fileKey: action.fileKey, gapId: action.gapId, expanded: action.expanded };
+      const expandedGaps = [...state.expandedGaps];
+      if (index >= 0) {
+        expandedGaps[index] = gap;
+      } else {
+        expandedGaps.push(gap);
+      }
+      return { ...state, expandedGaps };
+    }
+    case "expansion/reveal": {
+      const index = state.expandedGaps.findIndex(
+        (gap) => gap.fileKey === action.fileKey && gap.gapId === action.gapId,
+      );
+      const current = index >= 0 ? state.expandedGaps[index]! : undefined;
+      const collapsed = action.reveal.head === 0 && action.reveal.tail === 0;
+      if (
+        current !== undefined &&
+        !current.expanded &&
+        (collapsed
+          ? current.reveal === undefined
+          : current.reveal?.head === action.reveal.head &&
+            current.reveal.tail === action.reveal.tail)
+      ) {
+        return state;
+      }
+      if (current === undefined && collapsed) return state;
+      const gap: ReviewExpandedGapState = {
+        fileKey: action.fileKey,
+        gapId: action.gapId,
+        expanded: false,
+        ...(collapsed ? {} : { reveal: action.reveal }),
+      };
       const expandedGaps = [...state.expandedGaps];
       if (index >= 0) {
         expandedGaps[index] = gap;

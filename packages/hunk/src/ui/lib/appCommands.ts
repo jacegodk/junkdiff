@@ -153,6 +153,8 @@ export interface BuildAppCommandsOptions {
   toggleCopyDecorations: () => void;
   toggleFocusArea: () => void;
   toggleGapForSelectedHunk: () => void;
+  /** junk: show (`count` > 0) or hide unchanged lines around the selected hunk. */
+  revealAroundSelectedHunk?: (count: number) => void;
   toggleHelp: () => void;
   toggleHunkHeaders: () => void;
   toggleLineNumbers: () => void;
@@ -238,6 +240,8 @@ function builtinCommandHandlers(
     "hunk.review.halfPageUp": { run: (_key, count) => options.scrollDiff(-count, "half") },
     "hunk.review.stepDown": { run: (_key, count) => options.stepDiffLine(count) },
     "hunk.review.stepUp": { run: (_key, count) => options.stepDiffLine(-count) },
+    "hunk.review.scrollLineDown": { run: (_key, count) => options.scrollDiff(count, "step") },
+    "hunk.review.scrollLineUp": { run: (_key, count) => options.scrollDiff(-count, "step") },
     "hunk.review.scrollCodeLeft": {
       run: (key, count) =>
         options.scrollCodeHorizontally(
@@ -287,6 +291,12 @@ function builtinCommandHandlers(
     "hunk.view.toggleHunkHeaders": { run: () => options.toggleHunkHeaders() },
     "hunk.view.toggleCopyDecorations": { run: () => options.toggleCopyDecorations() },
     "hunk.review.toggleHunkGap": { run: () => options.toggleGapForSelectedHunk() },
+    "hunk.review.expandAroundHunk": {
+      run: (_key, count) => options.revealAroundSelectedHunk?.(count),
+    },
+    "hunk.review.shrinkAroundHunk": {
+      run: (_key, count) => options.revealAroundSelectedHunk?.(-count),
+    },
     "hunk.review.editSelectedFile": { run: () => options.triggerEditSelectedFile() },
     "hunk.review.previousHunk": {
       run: (_key, count, entry) => runSelectionMove(options, entry, count),

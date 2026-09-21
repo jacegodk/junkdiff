@@ -6,6 +6,7 @@
  * keeping the state internally consistent, so anything requiring judgement — "save the
  * current draft", "clear these notes" — is planned in `intents.ts` and lowered to these.
  */
+import type { ReviewGapReveal } from "./expansion";
 import type {
   ReviewDraftNote,
   ReviewRevealRequest,
@@ -47,4 +48,6 @@ export type ReviewAction =
   /** Replace one saved user note in place and retire its edit draft in one revision. */
   | { type: "draft/save-edit"; note: ReviewStoredNote }
   | { type: "expansion/toggle"; fileKey: string; gapId: string; expanded: boolean }
+  /** junk: show part of a collapsed gap; a zero reveal collapses it again. */
+  | { type: "expansion/reveal"; fileKey: string; gapId: string; reveal: ReviewGapReveal }
   | { type: "expansion/set-source-status"; fileKey: string; status: ReviewSourceStatus };

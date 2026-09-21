@@ -6,6 +6,7 @@
  * differently. Selectors stay pure functions of state, and the ones that encode a rule
  * rather than a lookup say so by name.
  */
+import type { ReviewGapReveal } from "./expansion";
 import { normalizeDiffPath } from "../changeset/diffPaths";
 import {
   reviewGapId,
@@ -609,6 +610,19 @@ export function selectReviewGapForSelection(
   return trailing
     ? { fileKey: file.key, gapId: reviewGapId("trailing", trailing.hunkIndex) }
     : undefined;
+}
+
+/** junk: select the partly revealed gaps of every file, keyed by gap id. */
+export function selectRevealedGapsByFileKey(
+  state: Pick<ReviewState, "expandedGaps">,
+): Record<string, ReadonlyMap<string, ReviewGapReveal>> {
+  const result: Record<string, Map<string, ReviewGapReveal>> = {};
+  for (const gap of state.expandedGaps) {
+    if (!gap.expanded && gap.reveal) {
+      (result[gap.fileKey] ??= new Map()).set(gap.gapId, gap.reveal);
+    }
+  }
+  return result;
 }
 
 /** Select the expanded gap ids of every file that currently has any. */

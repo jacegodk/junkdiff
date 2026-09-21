@@ -167,6 +167,52 @@ describe("selection", () => {
 });
 
 describe("document reconciliation", () => {
+  test("junk: a reveal records the shown part of a gap, and a zero reveal collapses it", () => {
+    const base = createTestReviewState();
+    const revealed = reduceReviewState(base, {
+      type: "expansion/reveal",
+      fileKey: "alpha",
+      gapId: "before:1",
+      reveal: { head: 0, tail: 4 },
+    });
+    expect(revealed.expandedGaps).toEqual([
+      { fileKey: "alpha", gapId: "before:1", expanded: false, reveal: { head: 0, tail: 4 } },
+    ]);
+    expect(
+      reduceReviewState(revealed, {
+        type: "expansion/reveal",
+        fileKey: "alpha",
+        gapId: "before:1",
+        reveal: { head: 0, tail: 4 },
+      }),
+    ).toBe(revealed);
+    // A full toggle replaces the reveal; collapsing again drops it.
+    const full = reduceReviewState(revealed, {
+      type: "expansion/toggle",
+      fileKey: "alpha",
+      gapId: "before:1",
+      expanded: true,
+    });
+    expect(full.expandedGaps).toEqual([{ fileKey: "alpha", gapId: "before:1", expanded: true }]);
+    const collapsed = reduceReviewState(revealed, {
+      type: "expansion/reveal",
+      fileKey: "alpha",
+      gapId: "before:1",
+      reveal: { head: 0, tail: 0 },
+    });
+    expect(collapsed.expandedGaps).toEqual([
+      { fileKey: "alpha", gapId: "before:1", expanded: false },
+    ]);
+    expect(
+      reduceReviewState(base, {
+        type: "expansion/reveal",
+        fileKey: "alpha",
+        gapId: "before:1",
+        reveal: { head: 0, tail: 0 },
+      }),
+    ).toBe(base);
+  });
+
   test("drops expansion and loaded source for a file whose source identity changed", () => {
     const state = reduceAll(
       createTestReviewState([

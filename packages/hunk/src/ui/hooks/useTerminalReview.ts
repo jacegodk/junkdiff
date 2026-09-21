@@ -10,6 +10,7 @@
  * `App` uses it for rendering and keyboard or menu actions; the session bridge uses the
  * same hook for daemon-driven navigation and agent notes.
  */
+import type { ReviewGapReveal } from "../../core/review/expansion";
 import {
   useCallback,
   useDeferredValue,
@@ -46,6 +47,7 @@ import {
   reviewFileKeysWithRetiredContent,
   selectActiveStoredReviewNote,
   selectExpandedGapIdsByFileKey,
+  selectRevealedGapsByFileKey,
   selectNavigableStoredReviewNotes,
   selectNormalizedSelection,
   selectThreadedStoredReviewNotes,
@@ -216,6 +218,8 @@ export interface TerminalReview {
   /** The store's monotonic revision, reported to anyone ordering this review's publications. */
   stateRevision: number;
   expandedGapsByFileId: Record<string, ReadonlySet<string>>;
+  /** junk: gaps showing only some of their lines, keyed by file id then gap id. */
+  revealedGapsByFileId: Record<string, ReadonlyMap<string, ReviewGapReveal>>;
   filter: string;
   draftNote: DraftReviewNote | null;
   liveCommentCount: number;
@@ -258,6 +262,8 @@ export interface TerminalReview {
   sourceStatusByFileId: Record<string, FileSourceStatus>;
   toggleGap: (fileId: string, gapKey: string) => void;
   toggleSelectedHunkGap: () => void;
+  /** junk: show (`count` > 0) or hide 10×count unchanged lines on both sides of the selected hunk. */
+  revealAroundSelectedHunk: (count: number) => void;
   visibleFiles: DiffFile[];
   addLiveComment: (
     input: CommentToolInput,
@@ -517,6 +523,16 @@ export function useTerminalReview({
     }
     return result;
   }, [expandedGaps, fileByKey]);
+  const revealedGapsByFileId = useMemo(() => {
+    const result: Record<string, ReadonlyMap<string, ReviewGapReveal>> = {};
+    for (const [fileKey, gaps] of Object.entries(selectRevealedGapsByFileKey({ expandedGaps }))) {
+      const file = fileByKey.get(fileKey);
+      if (file) {
+        result[file.id] = gaps;
+      }
+    }
+    return result;
+  }, [expandedGaps, fileByKey]);
   const sourceStatusByFileId = useMemo(() => {
     const result: Record<string, FileSourceStatus> = {};
     for (const [fileKey, status] of Object.entries(state.sourceStatusByFileKey)) {
@@ -580,7 +596,7 @@ export function useTerminalReview({
    * a renderer owns and keeps the bookkeeping that follows.
    */
   const lowerCommand = useCallback(
-    (id: AppCommandId, facts?: Omit<AppCommandLoweringContext, "count" | "state">) =>
+    (id: AppCommandId, facts?: Partial<Omit<AppCommandLoweringContext, "state">>) =>
       lowerAppCommandToReviewIntent(builtinAppCommand(id), {
         count: 1,
         state: store.getSnapshot(),
@@ -1031,7 +1047,7 @@ export function useTerminalReview({
   useEffect(() => {
     const snapshot = store.getSnapshot();
     for (const gap of snapshot.expandedGaps) {
-      if (!gap.expanded || snapshot.sourceStatusByFileKey[gap.fileKey]) {
+      if ((!gap.expanded && !gap.reveal) || snapshot.sourceStatusByFileKey[gap.fileKey]) {
         continue;
       }
       const file = fileByKey.get(gap.fileKey);
@@ -1094,6 +1110,23 @@ export function useTerminalReview({
       applyGapToggle(file, intent);
     }
   }, [applyGapToggle, fileByKey, lowerCommand]);
+
+  /** junk: grow or shrink the unchanged context on both sides of the selected hunk. */
+  const revealAroundSelectedHunk = useCallback(
+    (count: number) => {
+      if (count === 0) return;
+      const intent = lowerCommand(
+        count > 0 ? "hunk.review.expandAroundHunk" : "hunk.review.shrinkAroundHunk",
+        { count: Math.abs(count) },
+      );
+      if (intent?.type !== "expansion/reveal-around") return;
+      const file = fileByKey.get(intent.fileKey);
+      if (!file?.sourceFetcher) return;
+      const revealed = runIntent(intent);
+      if (revealed.anyOpen) startSourceLoad(file, intent.fileKey, revealed.side);
+    },
+    [fileByKey, lowerCommand, runIntent, startSourceLoad],
+  );
 
   /**
    * Resolve one session-daemon navigation request against the current review and select it.
@@ -1748,6 +1781,7 @@ export function useTerminalReview({
     stateRevision: state.stateRevision,
     draftNote,
     expandedGapsByFileId,
+    revealedGapsByFileId,
     filter,
     // Counted from the store, so notes on a file a reload retired still count as tracked.
     liveCommentCount: state.liveNotes.length,
@@ -1774,6 +1808,7 @@ export function useTerminalReview({
     sourceStatusByFileId,
     toggleGap,
     toggleSelectedHunkGap,
+    revealAroundSelectedHunk,
     visibleFiles,
     addAgentLineHighlight,
     addLiveComment,

@@ -11,7 +11,17 @@
  */
 import type { ReviewAction } from "./actions";
 import { reviewLineAnchor, reviewRangeAnchor } from "./anchors";
-import { reviewExpansionSide, reviewGapAddress, reviewGapSourceForFile } from "./expansion";
+import {
+  clampReviewGapReveal,
+  reviewExpansionSide,
+  reviewGapAddress,
+  reviewGapId,
+  reviewGapSourceForFile,
+  reviewLeadingGap,
+  reviewTrailingGap,
+  type ReviewGapAddress,
+  type ReviewGapReveal,
+} from "./expansion";
 import {
   reviewDefaultHunkLineTarget,
   reviewLineCoveredByHunks,
@@ -134,7 +144,9 @@ export type ReviewIntent =
   | { type: "notes/remove-live"; noteId: string }
   | { type: "notes/clear"; fileKey?: string; includeUser?: boolean }
   /** Flip one addressable collapsed gap between collapsed and expanded. */
-  | { type: "expansion/toggle"; fileKey: string; gapId: string };
+  | { type: "expansion/toggle"; fileKey: string; gapId: string }
+  /** junk: show `delta` more (or, negative, fewer) unchanged lines on both sides of one hunk. */
+  | { type: "expansion/reveal-around"; fileKey: string; hunkIndex: number; delta: number };
 
 /**
  * Every intent type, as a value rather than only as a type.
@@ -164,6 +176,7 @@ export const REVIEW_INTENT_TYPES = [
   "notes/remove-live",
   "notes/clear",
   "expansion/toggle",
+  "expansion/reveal-around",
 ] as const satisfies readonly ReviewIntent["type"][];
 
 export type ReviewIntentType = (typeof REVIEW_INTENT_TYPES)[number];
@@ -233,6 +246,16 @@ export interface ReviewExpansionToggledOutcome {
   sourceIdentity?: string;
 }
 
+/** junk: what a reveal-around settled on: the gaps it touched and whether any shows lines now. */
+export interface ReviewExpansionRevealedOutcome {
+  type: "expansion/revealed";
+  fileKey: string;
+  side: ReviewSide;
+  gapIds: string[];
+  /** True when at least one touched gap shows source lines, so its text has to be loaded. */
+  anyOpen: boolean;
+}
+
 export type ReviewIntentOutcome =
   | ReviewSelectionChangedOutcome
   | ReviewDraftStartedOutcome
@@ -240,7 +263,8 @@ export type ReviewIntentOutcome =
   | ReviewNoteUpdatedOutcome
   | ReviewNoteRemovedOutcome
   | ReviewNotesClearedOutcome
-  | ReviewExpansionToggledOutcome;
+  | ReviewExpansionToggledOutcome
+  | ReviewExpansionRevealedOutcome;
 
 /**
  * What each intent reports back.
@@ -269,6 +293,7 @@ export interface ReviewIntentOutcomeByType {
   "notes/remove-live": ReviewNoteRemovedOutcome;
   "notes/clear": ReviewNotesClearedOutcome;
   "expansion/toggle": ReviewExpansionToggledOutcome;
+  "expansion/reveal-around": ReviewExpansionRevealedOutcome;
 }
 
 export interface ReviewIntentPlan {
@@ -600,6 +625,73 @@ function planDraftReplyStart(
   };
 }
 
+/**
+ * junk: plan showing `delta` more unchanged lines on each side of one hunk.
+ *
+ * The gap before the hunk grows from its end (`tail`), the gap after it from its start
+ * (`head`), so the revealed lines sit next to the change. A gap whose reveal covers it all
+ * becomes fully expanded; one that shrinks to nothing collapses. Shrinking a fully expanded
+ * gap treats it as revealed entirely from the hunk's side.
+ */
+function planExpansionRevealAround(
+  state: ReviewState,
+  intent: Extract<ReviewIntent, { type: "expansion/reveal-around" }>,
+): ReviewIntentPlan {
+  const file = requireReviewFile(state, intent.fileKey);
+  if (!file.hunks[intent.hunkIndex]) {
+    throw new ReviewIntentPlanningError(
+      "hunk-not-found",
+      `Hunk ${intent.hunkIndex} does not exist in ${file.path}.`,
+    );
+  }
+  const source = reviewGapSourceForFile(file);
+  const before = reviewLeadingGap(source, intent.hunkIndex);
+  const next = reviewLeadingGap(source, intent.hunkIndex + 1);
+  const trailing = next ? undefined : reviewTrailingGap(source);
+  const after = next ?? (trailing?.hunkIndex === intent.hunkIndex ? trailing : undefined);
+
+  const actions: ReviewAction[] = [];
+  const gapIds: string[] = [];
+  let anyOpen = false;
+  const adjust = (address: ReviewGapAddress | undefined, side: keyof ReviewGapReveal) => {
+    if (!address) return;
+    const gapId = reviewGapId(address.position, address.hunkIndex);
+    const current = state.expandedGaps.find(
+      (gap) => gap.fileKey === file.key && gap.gapId === gapId,
+    );
+    const shown: ReviewGapReveal = current?.expanded
+      ? { head: 0, tail: 0, [side]: address.lineCount }
+      : (current?.reveal ?? { head: 0, tail: 0 });
+    const reveal = clampReviewGapReveal(
+      { ...shown, [side]: shown[side] + intent.delta },
+      address.lineCount,
+    );
+    gapIds.push(gapId);
+    if (reveal.head + reveal.tail >= address.lineCount) {
+      anyOpen = true;
+      if (!current?.expanded) {
+        actions.push({ type: "expansion/toggle", fileKey: file.key, gapId, expanded: true });
+      }
+      return;
+    }
+    if (reveal.head + reveal.tail > 0) anyOpen = true;
+    actions.push({ type: "expansion/reveal", fileKey: file.key, gapId, reveal });
+  };
+  adjust(before, "tail");
+  adjust(after, "head");
+
+  return {
+    actions,
+    outcome: {
+      type: "expansion/revealed",
+      fileKey: file.key,
+      side: reviewExpansionSide(file.changeKind),
+      gapIds,
+      anyOpen,
+    },
+  };
+}
+
 /** Plan flipping one collapsed gap, resolving the address it names. */
 function planExpansionToggle(
   state: ReviewState,
@@ -928,6 +1020,8 @@ export function planReviewIntent(
       return { actions: [{ type: "draft/cancel" }] };
     case "expansion/toggle":
       return planExpansionToggle(state, intent);
+    case "expansion/reveal-around":
+      return planExpansionRevealAround(state, intent);
     case "notes/create-user":
       return planUserNoteCreation(state, facts);
     case "notes/update-user":

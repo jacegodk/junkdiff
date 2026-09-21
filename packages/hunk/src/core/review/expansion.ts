@@ -45,6 +45,23 @@ export interface ReviewGapAddress {
   lineCount: number;
 }
 
+/**
+ * junk: how much of a collapsed gap is revealed without opening it fully. `head` lines are
+ * shown from the gap's start (next to the hunk above, or the file start), `tail` lines from
+ * its end (next to the hunk below, or the file end); the rest stays a collapsed row between.
+ */
+export interface ReviewGapReveal {
+  head: number;
+  tail: number;
+}
+
+/** Clamp a reveal to the gap so head and tail never overlap; both zero means nothing shown. */
+export function clampReviewGapReveal(reveal: ReviewGapReveal, lineCount: number): ReviewGapReveal {
+  const head = Math.max(0, Math.min(reveal.head, lineCount));
+  const tail = Math.max(0, Math.min(reveal.tail, lineCount - head));
+  return { head, tail };
+}
+
 /** Build the stable id of one collapsed gap inside a single file. */
 export function reviewGapId(position: ReviewGapPosition, hunkIndex: number) {
   return `${position}:${hunkIndex}`;

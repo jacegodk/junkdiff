@@ -980,6 +980,116 @@ describe("notes/start-draft", () => {
   });
 });
 
+describe("expansion/reveal-around (junk)", () => {
+  test("reveals lines next to the hunk on both sides, growing to a full expansion", () => {
+    // Test fixture: alpha's hunk 1 has a 9-line gap before it (lines 2-10) and no gap after.
+    const plan = planReviewIntent(createTestReviewState(), {
+      type: "expansion/reveal-around",
+      fileKey: "alpha",
+      hunkIndex: 1,
+      delta: 4,
+    });
+    expect(plan.actions).toEqual([
+      {
+        type: "expansion/reveal",
+        fileKey: "alpha",
+        gapId: "before:1",
+        reveal: { head: 0, tail: 4 },
+      },
+    ]);
+    expect(plan.outcome).toEqual({
+      type: "expansion/revealed",
+      fileKey: "alpha",
+      side: "new",
+      gapIds: ["before:1"],
+      anyOpen: true,
+    });
+
+    const revealed = plan.actions.reduce(reduceReviewState, createTestReviewState());
+    const grown = planReviewIntent(revealed, {
+      type: "expansion/reveal-around",
+      fileKey: "alpha",
+      hunkIndex: 1,
+      delta: 10,
+    });
+    expect(grown.actions).toEqual([
+      { type: "expansion/toggle", fileKey: "alpha", gapId: "before:1", expanded: true },
+    ]);
+
+    // Hunk 0 sits above that gap: from its side the gap grows from the head.
+    const below = planReviewIntent(createTestReviewState(), {
+      type: "expansion/reveal-around",
+      fileKey: "alpha",
+      hunkIndex: 0,
+      delta: 4,
+    });
+    expect(below.actions).toEqual([
+      {
+        type: "expansion/reveal",
+        fileKey: "alpha",
+        gapId: "before:1",
+        reveal: { head: 4, tail: 0 },
+      },
+    ]);
+  });
+
+  test("shrinks a reveal back to nothing, and a full expansion from the hunk's side", () => {
+    const partly = reduceReviewState(createTestReviewState(), {
+      type: "expansion/reveal",
+      fileKey: "alpha",
+      gapId: "before:1",
+      reveal: { head: 0, tail: 4 },
+    });
+    const shrunk = planReviewIntent(partly, {
+      type: "expansion/reveal-around",
+      fileKey: "alpha",
+      hunkIndex: 1,
+      delta: -10,
+    });
+    expect(shrunk.actions).toEqual([
+      {
+        type: "expansion/reveal",
+        fileKey: "alpha",
+        gapId: "before:1",
+        reveal: { head: 0, tail: 0 },
+      },
+    ]);
+    expect(shrunk.outcome).toMatchObject({ anyOpen: false });
+
+    const full = reduceReviewState(createTestReviewState(), {
+      type: "expansion/toggle",
+      fileKey: "alpha",
+      gapId: "before:1",
+      expanded: true,
+    });
+    const fromFull = planReviewIntent(full, {
+      type: "expansion/reveal-around",
+      fileKey: "alpha",
+      hunkIndex: 1,
+      delta: -4,
+    });
+    expect(fromFull.actions).toEqual([
+      {
+        type: "expansion/reveal",
+        fileKey: "alpha",
+        gapId: "before:1",
+        reveal: { head: 0, tail: 5 },
+      },
+    ]);
+  });
+
+  test("rejects a hunk the file does not have", () => {
+    expect(() =>
+      planReviewIntent(createTestReviewState(), {
+        type: "expansion/reveal-around",
+        fileKey: "alpha",
+        hunkIndex: 9,
+        delta: 10,
+      }),
+    ).toThrow(ReviewIntentPlanningError);
+  });
+});
+
 describe("expansion/toggle", () => {
   test("expands a collapsed gap and reports the address it resolved", () => {
     const plan = planReviewIntent(createTestReviewState(), {

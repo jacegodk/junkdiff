@@ -4,6 +4,7 @@
  * `DiffSection` owns the file header and picks a body; this is the diff-row body it picks
  * for a normal review, beside `FileView` for the alternate file views.
  */
+import type { ReviewGapReveal } from "../../core/review/expansion";
 import { useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_HUNK_GAP } from "../../core/run/reviewGap";
@@ -62,6 +63,7 @@ export function DiffSectionBody({
   copySelectedSide,
   cursorHighlight,
   expandedGapKeys = EMPTY_EXPANDED_GAP_KEYS,
+  revealedGaps,
   extensionLineHighlights,
   file,
   layout,
@@ -94,6 +96,8 @@ export function DiffSectionBody({
   /** The current line within this file, when the review-stream cursor rests in it. */
   cursorHighlight?: CursorHighlight;
   expandedGapKeys?: ReadonlySet<string>;
+  /** junk: gaps showing only some of their lines. */
+  revealedGaps?: ReadonlyMap<string, ReviewGapReveal>;
   /** Validated extension marks for this file, in source coordinates. */
   extensionLineHighlights?: readonly ValidatedLineHighlight[];
   file: DiffFile | undefined;
@@ -196,14 +200,15 @@ export function DiffSectionBody({
     theme,
     shouldLoadHighlight,
   });
+  const showsSourceLines = expandedGapKeys.size > 0 || (revealedGaps?.size ?? 0) > 0;
   const sourceTextForHighlight =
-    sourceStatus?.kind === "loaded" && expandedGapKeys.size > 0 ? sourceStatus.text : undefined;
+    sourceStatus?.kind === "loaded" && showsSourceLines ? sourceStatus.text : undefined;
   const resolvedHighlightedSource = useHighlightedSource({
     file,
     offloadLargeDiff,
     text: sourceTextForHighlight,
     theme,
-    shouldLoadHighlight: shouldLoadHighlight && expandedGapKeys.size > 0,
+    shouldLoadHighlight: shouldLoadHighlight && showsSourceLines,
   });
   const sourceLineSpans = useCallback(
     (line: string | undefined, sourceLineNumber: number) =>
@@ -215,6 +220,7 @@ export function DiffSectionBody({
     () =>
       buildDiffSectionRowPlan({
         expandedKeys: expandedGapKeys,
+        revealedGaps,
         file,
         highlightedDiff: resolvedHighlighted,
         layout,
@@ -228,6 +234,7 @@ export function DiffSectionBody({
       }),
     [
       expandedGapKeys,
+      revealedGaps,
       file,
       layout,
       resolvedHighlighted,

@@ -1,3 +1,4 @@
+import type { ReviewGapReveal } from "../../../core/review/expansion";
 import { memo } from "react";
 import type { DiffFile } from "../../../core/changeset/model";
 import type { LayoutMode } from "../../../core/run/commandInputs";
@@ -22,6 +23,8 @@ import type { ResolvedFileViewLayout } from "../../fileViews/useFileViews";
 interface DiffSectionProps {
   codeHorizontalOffset: number;
   expandedGapKeys: ReadonlySet<string>;
+  /** junk: gaps showing only some of their lines. */
+  revealedGaps?: ReadonlyMap<string, ReviewGapReveal>;
   /** Validated extension marks for this file, in source coordinates. */
   extensionLineHighlights?: readonly ValidatedLineHighlight[];
   file: DiffFile;
@@ -65,6 +68,7 @@ interface DiffSectionProps {
 function DiffSectionComponent({
   codeHorizontalOffset,
   expandedGapKeys,
+  revealedGaps,
   extensionLineHighlights,
   file,
   fileView,
@@ -185,6 +189,7 @@ function DiffSectionComponent({
       ) : (
         <DiffSectionBody
           expandedGapKeys={expandedGapKeys}
+          revealedGaps={revealedGaps}
           extensionLineHighlights={extensionLineHighlights}
           file={file}
           layout={layout}
@@ -229,6 +234,7 @@ export const DiffSection = memo(DiffSectionComponent, (previous, next) => {
   return (
     previous.codeHorizontalOffset === next.codeHorizontalOffset &&
     previous.expandedGapKeys === next.expandedGapKeys &&
+    previous.revealedGaps === next.revealedGaps &&
     previous.extensionLineHighlights === next.extensionLineHighlights &&
     previous.file === next.file &&
     previous.fileView === next.fileView &&

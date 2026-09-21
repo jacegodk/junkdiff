@@ -44,6 +44,10 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
         commandIds: ["hunk.review.stepUp", "hunk.review.stepDown"],
         description: "move through lines and notes",
       },
+      {
+        commandIds: ["hunk.review.scrollLineUp", "hunk.review.scrollLineDown"],
+        description: "scroll one line",
+      },
       { commandIds: ["hunk.review.pageDown"], description: "page down" },
       { commandIds: ["hunk.review.pageUp"], description: "page up" },
       {
@@ -97,7 +101,14 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
         commandIds: ["hunk.view.toggleAgentNotes", "hunk.view.toggleHandledNotes"],
         description: "toggle AI notes / handled notes",
       },
-      { commandIds: ["hunk.review.toggleHunkGap"], description: "toggle unchanged context" },
+      {
+        commandIds: [
+          "hunk.review.toggleHunkGap",
+          "hunk.review.expandAroundHunk",
+          "hunk.review.shrinkAroundHunk",
+        ],
+        description: "toggle / show 10 more / hide 10 unchanged lines",
+      },
       {
         commandIds: [
           "hunk.view.toggleLineNumbers",
