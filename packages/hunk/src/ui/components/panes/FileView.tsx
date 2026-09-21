@@ -60,15 +60,23 @@ function SymbolicFileViewRow({
   theme: AppTheme;
 }) {
   const content = useMemo(() => {
-    const paintRuns: Array<{ text: string; fg: string; attributes: number }> = [];
+    const paintRuns: Array<{ text: string; fg: string; bg?: string; attributes: number }> = [];
     for (const span of row.spans) {
       const fallbackForeground = symbolicToneColor(span.tone, theme);
       const attributes = symbolicTextAttributes(span.attributes);
+      // junk: a span-level change tint sits under the syntax colors, like the row background.
+      const bg =
+        span.background === "added"
+          ? theme.addedBg
+          : span.background === "removed"
+            ? theme.removedBg
+            : undefined;
       const syntaxRuns = projector.projectSpan(span);
       for (const run of syntaxRuns ?? [{ text: span.text }]) {
         paintRuns.push({
           text: run.text,
           fg: run.fg ?? fallbackForeground,
+          ...(bg === undefined ? {} : { bg }),
           attributes,
         });
       }
@@ -80,6 +88,7 @@ function SymbolicFileViewRow({
       __isChunk: true,
       text: run.text,
       fg: fileViewPaintColor(run.fg),
+      ...(run.bg === undefined ? {} : { bg: fileViewPaintColor(run.bg) }),
       attributes: run.attributes,
     }));
     return new StyledText(chunks);

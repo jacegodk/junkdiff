@@ -285,6 +285,12 @@ function validateFileViewLayoutWithMeasurer(
           issue: `rows[${index}] contains an invalid span tone`,
         };
       }
+      if (span.background !== undefined && !FILE_VIEW_ROW_BACKGROUNDS.has(span.background)) {
+        return {
+          valid: false,
+          issue: `rows[${index}] contains an invalid span background`,
+        };
+      }
       if (
         span.attributes !== undefined &&
         (!Array.isArray(span.attributes) ||
@@ -385,6 +391,7 @@ function validateFileViewLayoutWithMeasurer(
           ...(tone === undefined ? {} : { tone }),
           ...(attributes === undefined ? {} : { attributes }),
           ...(syntax === undefined ? {} : { syntax }),
+          ...(span.background === undefined ? {} : { background: span.background }),
         }),
       );
     }

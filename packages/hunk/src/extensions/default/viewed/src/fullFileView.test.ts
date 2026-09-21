@@ -171,16 +171,24 @@ describe("buildFullFileLayout split columns", () => {
     ]);
     // The paired change row: left carries the removed text with a "-" marker, right the added
     // text with a "+" marker; marker, text, and padding are separate spans in the row's tone.
+    // Each changed side is tinted span by span (gutter included), and the added text takes a
+    // reference to the new document, so it is syntax-painted over the tint like a single-column
+    // change row; the removed side has no old document here and stays solid.
     expect(layout!.rows[1]!.spans).toEqual([
-      { text: "2 ", tone: "muted" },
-      { text: "- ", tone: "removed" },
-      { text: "line two", tone: "removed" },
-      { text: "          ", tone: "removed" },
+      { text: "2 ", tone: "muted", background: "removed" },
+      { text: "- ", tone: "removed", background: "removed" },
+      { text: "line two", tone: "removed", background: "removed" },
+      { text: "          ", tone: "removed", background: "removed" },
       { text: " │ ", tone: "muted" },
-      { text: "2 ", tone: "muted" },
-      { text: "+ ", tone: "added" },
-      { text: "line two changed", tone: "added" },
-      { text: "  ", tone: "added" },
+      { text: "2 ", tone: "muted", background: "added" },
+      { text: "+ ", tone: "added", background: "added" },
+      {
+        text: "line two changed",
+        tone: "added",
+        syntax: { documentId: "new", line: 2 },
+        background: "added",
+      },
+      { text: "  ", tone: "added", background: "added" },
     ]);
     // A context row shows the same text on both sides.
     expect(layout!.rows[0]!.spans[2]!.text).toBe("line one");
@@ -370,19 +378,25 @@ describe("buildFullFileLayout search hits", () => {
     expect(layout).not.toBeNull();
     // Left (old side, "old foo" removed): a match, but not the current pick (that lives on "new").
     expect(layout!.rows[0]!.spans.slice(0, 5)).toEqual([
-      { text: "1 ", tone: "muted" },
-      { text: "- ", tone: "removed" },
-      { text: "old ", tone: "removed" },
-      { text: "foo", tone: "accent" },
-      { text: "           ", tone: "removed" },
+      { text: "1 ", tone: "muted", background: "removed" },
+      { text: "- ", tone: "removed", background: "removed" },
+      { text: "old ", tone: "removed", background: "removed" },
+      { text: "foo", tone: "accent", background: "removed" },
+      { text: "           ", tone: "removed", background: "removed" },
     ]);
-    // Right (new side, "foo bar" added): the current pick, so bold.
+    // Right (new side, "foo bar" added): the current pick, so bold. The unmatched rest of the
+    // line is referenced by range so syntax paint reaches it over the tint.
     expect(layout!.rows[0]!.spans.slice(6)).toEqual([
-      { text: "1 ", tone: "muted" },
-      { text: "+ ", tone: "added" },
-      { text: "foo", tone: "accent", attributes: ["bold"] },
-      { text: " bar", tone: "added" },
-      { text: "           ", tone: "added" },
+      { text: "1 ", tone: "muted", background: "added" },
+      { text: "+ ", tone: "added", background: "added" },
+      { text: "foo", tone: "accent", attributes: ["bold"], background: "added" },
+      {
+        text: " bar",
+        tone: "added",
+        syntax: { documentId: "new", line: 1, range: [3, 7] },
+        background: "added",
+      },
+      { text: "           ", tone: "added", background: "added" },
     ]);
     expect(layout!.rows[0]!.spans[5]).toEqual({ text: " │ ", tone: "muted" });
     expectValidFileViewLayout(layout!, 1);
@@ -484,8 +498,13 @@ describe("buildFullFileLayout syntax paint (API 24)", () => {
       text: "line one",
       syntax: { documentId: "new", line: 1 },
     });
-    // The removed/added pair stays solid, even with the old document available.
-    expect(layout!.rows[1]!.spans[2]).toEqual({ text: "line two", tone: "removed" });
+    // The removed side is tinted and, with the old document available, references it for paint.
+    expect(layout!.rows[1]!.spans[2]).toEqual({
+      text: "line two",
+      tone: "removed",
+      syntax: { documentId: "old", line: 2 },
+      background: "removed",
+    });
     expectValidFileViewLayout(layout!, 2);
 
     // An old document that disagrees with the diff's context: no reference on that side, rather

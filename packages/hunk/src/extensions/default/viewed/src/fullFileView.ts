@@ -127,8 +127,8 @@ function syntaxRef(
  * resolves. Only untoned (context) spans take a reference: hunk's token colors override `tone`
  * and hunk paints no added/removed background on file-view rows, so a highlighted change line
  * would look like context with a marker. junk's single-column rows carry a row `background`
- * instead and pass `tinted`, so their change lines are painted too; split rows have two sides
- * in one row and stay solid green and red.
+ * instead and pass `tinted`, so their change lines are painted too; a split row tints only the
+ * changed side, through junk's span-level `background`.
  */
 function contentSpan(
   text: string,
@@ -479,7 +479,8 @@ interface SplitCell {
   text: string;
   lineNumber: number;
   marker: " " | "+" | "-";
-  tone: ExtensionFileViewSpan["tone"];
+  /** The change tone of this side, absent for context; it also names the side's tint. */
+  tone: "added" | "removed" | undefined;
 }
 
 /**
@@ -509,6 +510,9 @@ function renderColumn(
   const truncated = fitted !== cell.text && fitted.endsWith("…");
   const kept = truncated ? fitted.slice(0, -1) : fitted;
   const hitRanges = hits ? findLineHits(kept, hits.query) : [];
+  // A changed side is tinted span by span, so its text can take syntax paint like a single-column
+  // change row while the other side of the row keeps its own look.
+  const tinted = cell.tone !== undefined;
   const contentSpans =
     hitRanges.length === 0
       ? [
@@ -526,6 +530,7 @@ function renderColumn(
                     kept,
                     kept === cell.text ? undefined : [0, kept.length],
                   ),
+                  tinted,
                 ),
               ]),
         ]
@@ -538,12 +543,16 @@ function renderColumn(
           hitRanges,
           hits?.current,
           docs,
+          tinted,
         );
   const tail =
     (truncated ? "…" : "") +
     " ".repeat(Math.max(0, contentWidth - textWidth(`${cell.marker} ${fitted}`)));
   if (tail !== "") contentSpans.push(contentSpan(tail, cell.tone));
-  return [{ text: gutterText, tone: "muted" }, ...contentSpans];
+  const cellSpans: ExtensionFileViewSpan[] = [{ text: gutterText, tone: "muted" }, ...contentSpans];
+  return cell.tone === undefined
+    ? cellSpans
+    : cellSpans.map((span) => ({ ...span, background: cell.tone }));
 }
 
 /** Push one split row built from an optional old-side and new-side cell. */

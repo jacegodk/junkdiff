@@ -638,4 +638,40 @@ describe("file-view layout validation", () => {
       });
     }
   });
+
+  test("junk: a span background is kept when it names a change tint and rejected otherwise", () => {
+    const tinted = validateFileViewLayout(
+      {
+        rows: [
+          {
+            id: "one",
+            spans: [
+              { text: "one", background: "removed" },
+              { text: " two", tone: "muted" },
+            ],
+          },
+        ],
+        hunkRows: [],
+      },
+      0,
+      80,
+    );
+    expect(tinted.valid).toBe(true);
+    if (tinted.valid) {
+      expect(tinted.value.layout.rows[0]?.spans).toEqual([
+        { text: "one", background: "removed" },
+        { text: " two", tone: "muted" },
+      ]);
+    }
+    expect(
+      validateFileViewLayout(
+        {
+          rows: [{ id: "one", spans: [{ text: "one", background: "accent" }] }],
+          hunkRows: [],
+        },
+        0,
+        80,
+      ),
+    ).toEqual({ valid: false, issue: "rows[0] contains an invalid span background" });
+  });
 });

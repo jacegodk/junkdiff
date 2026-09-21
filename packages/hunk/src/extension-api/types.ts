@@ -359,6 +359,11 @@ export interface ExtensionFileViewSpan {
    * authored `attributes` apply to every resulting run. Highlighting never changes text or geometry.
    */
   readonly syntax?: ExtensionFileViewSyntaxReference;
+  /**
+   * junk: paint this span alone on the raw diff's added or removed background, under any syntax
+   * colors, so one side of a split row can read as a change while the other stays context.
+   */
+  readonly background?: "added" | "removed";
 }
 
 /** Bounded paint-only props handed to a custom file-view row component. */
