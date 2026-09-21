@@ -72,8 +72,13 @@ async function importExtensionModule(path: string): Promise<unknown> {
   return await import(pathToFileURL(path).href);
 }
 
-/** Source-path prefix of built-in extensions; a refusal against one gets its own wording. */
+/** Source-path prefix of built-in extensions; an installed copy of one is skipped, not refused. */
 export const BUILT_IN_SOURCE_PREFIX = "junk:bundled/";
+
+/** Report whether an installed candidate is a copy of an extension compiled into junk. */
+function shadowedByBuiltIn(candidate: ExtensionCandidate, claimedBy: ReadonlyMap<string, string>) {
+  return claimedBy.get(candidate.id)?.startsWith(BUILT_IN_SOURCE_PREFIX) ?? false;
+}
 
 /** Report whether an id belongs to Hunk rather than to a user extension. */
 function isReservedExtensionId(id: string, reservedIds: ReadonlySet<string>) {
@@ -103,9 +108,6 @@ function describeIdRefusal(
 
   const owner = claimedBy.get(candidate.id);
   if (owner === undefined) return undefined;
-  if (owner.startsWith(BUILT_IN_SOURCE_PREFIX)) {
-    return `"${candidate.id}" is built into junk • hunk extension remove ${candidate.id}`;
-  }
   return `another extension already loaded as "${candidate.id}" (${owner}) • rename ${candidate.path}`;
 }
 
@@ -156,6 +158,9 @@ function acceptCandidateIds(
   const claimedBy = new Map(initialClaims);
 
   for (const candidate of candidates) {
+    // A leftover install of a built-in is stale, not broken: junk already provides it, so the
+    // copy is skipped without a notice on every start.
+    if (shadowedByBuiltIn(candidate, claimedBy)) continue;
     const refusal =
       describeIdRefusal(candidate, claimedBy, reservedIds) ?? describeApiVersionRefusal(candidate);
     if (refusal !== undefined) {

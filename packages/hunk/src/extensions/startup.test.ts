@@ -134,9 +134,9 @@ export default function (hunk) {
     expect(final.loaded.map((extension) => extension.id)).toEqual(["global", "local"]);
   });
 
-  test("junk's built-in extensions load first under their own ids, and an installed copy is refused", async () => {
+  test("junk's built-in extensions load first under their own ids, and an installed copy is skipped silently", async () => {
     const home = createTempDir("hunk-startup-builtin-");
-    const installed = writeGlobalExtension(
+    writeGlobalExtension(
       home,
       "viewed.ts",
       `export default function (hunk: { registerTheme: (t: { id: string }) => void }) {
@@ -172,11 +172,8 @@ export default function (hunk) {
       ["other", "global"],
     ]);
     expect(result.registry.themes.map((entry) => entry.theme.id)).toEqual(["built-in", "other"]);
-    expect(result.issues).toHaveLength(1);
-    expect(result.issues[0]?.path).toBe(installed);
-    expect(result.issues[0]?.message).toBe(
-      '"viewed" is built into junk • hunk extension remove viewed',
-    );
+    // The stale install is skipped silently; it is not a failure worth a notice on every start.
+    expect(result.issues).toEqual([]);
   });
 
   test("junk's built-in list carries hunk-viewed, and it loads with no extension on disk", async () => {
