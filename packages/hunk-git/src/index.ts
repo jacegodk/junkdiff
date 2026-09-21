@@ -606,6 +606,7 @@ export function createGitVcsAdapter({
 }
 
 export {
+  isGitWorktree,
   listGitWorktrees,
   resolveGitBranch,
   resolveGitDefaultBranch,

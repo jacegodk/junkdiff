@@ -2,11 +2,13 @@ import { homedir } from "node:os";
 import { useEffect, useRef } from "react";
 import type { ReviewStore } from "../../core/review/store";
 import {
-  diffSavedNotes,
   mergeSavedNotes,
   readSavedNotes,
   resolveNotesStateDir,
   resolveSavedNotesPath,
+} from "../../app/savedNotesFile";
+import {
+  diffSavedNotes,
   restoreSavedNotes,
   savedNoteFromStored,
   type SavedNote,

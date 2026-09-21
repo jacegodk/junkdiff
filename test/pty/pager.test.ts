@@ -36,6 +36,7 @@ async function scrollWheelUntil(
   throw new Error(lastErrorMessage);
 }
 
+/** junk bundles hunk-viewed, so its menu bar carries an Extensions menu the upstream bar lacks. */
 describe("PTY pager", () => {
   test("pager mode hides chrome and pages forward on space", async () => {
     const fixture = harness.createPagerPatchFixture();
@@ -48,7 +49,7 @@ describe("PTY pager", () => {
     try {
       const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
 
-      expect(initial).not.toContain("View  Navigate  Agent  Help");
+      expect(initial).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(initial).toContain("before_01");
       expect(initial).not.toContain("before_23");
 
@@ -61,7 +62,7 @@ describe("PTY pager", () => {
         5_000,
       );
 
-      expect(paged).not.toContain("View  Navigate  Agent  Help");
+      expect(paged).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(paged).toContain("before_23");
     } finally {
       session.close();
@@ -176,7 +177,7 @@ describe("PTY pager", () => {
     try {
       const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
 
-      expect(initial).not.toContain("View  Navigate  Agent  Help");
+      expect(initial).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(initial).toContain("before_01");
       expect(initial).not.toContain("before_12");
 
@@ -187,7 +188,7 @@ describe("PTY pager", () => {
         (text) => !text.includes("before_01") && text.includes("before_12"),
       );
 
-      expect(scrolled).not.toContain("View  Navigate  Agent  Help");
+      expect(scrolled).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(scrolled).not.toContain("before_01");
       expect(scrolled).toContain("before_12");
 
@@ -244,7 +245,7 @@ describe("PTY pager", () => {
     try {
       const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
 
-      expect(initial).not.toContain("View  Navigate  Agent  Help");
+      expect(initial).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(initial).toContain("before_01");
       expect(initial).not.toContain("before_12");
 
@@ -255,7 +256,7 @@ describe("PTY pager", () => {
         (text) => !text.includes("before_01") && text.includes("before_12"),
       );
 
-      expect(scrolled).not.toContain("View  Navigate  Agent  Help");
+      expect(scrolled).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(scrolled).not.toContain("before_01");
       expect(scrolled).toContain("before_12");
 
@@ -284,7 +285,7 @@ describe("PTY pager", () => {
     try {
       const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
 
-      expect(initial).not.toContain("View  Navigate  Agent  Help");
+      expect(initial).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(harness.countMatches(initial, /scroll\.ts/g)).toBe(1);
 
       // CI can surface the pager content before the file-backed stdin path is ready for keys.
@@ -297,7 +298,7 @@ describe("PTY pager", () => {
         5_000,
       );
 
-      expect(withSidebar).not.toContain("View  Navigate  Agent  Help");
+      expect(withSidebar).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(withSidebar).toMatch(sidebarRow);
     } finally {
       session.close();
@@ -364,7 +365,7 @@ describe("PTY pager", () => {
       const initial = await session.waitForText(/first\.ts/, { timeout: 15_000 });
 
       // Pager chrome starts out of the way, but nothing about it is disabled.
-      expect(initial).not.toContain("View  Navigate  Agent  Help");
+      expect(initial).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(initial).toMatch(/▌.*▌/);
 
       await session.waitIdle({ timeout: 200 });
@@ -385,11 +386,11 @@ describe("PTY pager", () => {
       await session.type("M");
       const withMenuBar = await harness.waitForSnapshot(
         session,
-        (text) => text.includes("View  Navigate  Agent  Help"),
+        (text) => text.includes("View  Navigate  Agent  Extensions  Help"),
         5_000,
       );
 
-      expect(withMenuBar).toContain("View  Navigate  Agent  Help");
+      expect(withMenuBar).toContain("View  Navigate  Agent  Extensions  Help");
       expect(withMenuBar).toContain("first.ts");
     } finally {
       session.close();
@@ -436,7 +437,7 @@ describe("PTY pager", () => {
     try {
       const initial = await session.waitForText(/scroll\.ts/, { timeout: 15_000 });
 
-      expect(initial).not.toContain("View  Navigate  Agent  Help");
+      expect(initial).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(initial).toContain("before_01");
       expect(initial).not.toContain("before_12");
 
@@ -447,7 +448,7 @@ describe("PTY pager", () => {
         (text) => !text.includes("before_01") && text.includes("before_12"),
       );
 
-      expect(scrolled).not.toContain("View  Navigate  Agent  Help");
+      expect(scrolled).not.toContain("View  Navigate  Agent  Extensions  Help");
       expect(scrolled).not.toContain("before_01");
       expect(scrolled).toContain("before_12");
 

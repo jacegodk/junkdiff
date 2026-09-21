@@ -141,6 +141,8 @@ export interface BuildAppCommandsOptions {
   scrollCodeHorizontally: (delta: number) => void;
   scrollDiff: (delta: number, unit: ScrollUnit) => void;
   stepDiffLine: (delta: number) => void;
+  /** junk: step the line cursor without leaving the hunk it is in. */
+  stepDiffLineInHunk: (delta: number) => void;
   selectCursorLine: (style: CursorLine) => void;
   selectLayoutMode: (mode: LayoutMode) => void;
   hasVisualSelection?: () => boolean;
@@ -240,8 +242,8 @@ function builtinCommandHandlers(
     "hunk.review.halfPageUp": { run: (_key, count) => options.scrollDiff(-count, "half") },
     "hunk.review.stepDown": { run: (_key, count) => options.stepDiffLine(count) },
     "hunk.review.stepUp": { run: (_key, count) => options.stepDiffLine(-count) },
-    "hunk.review.scrollLineDown": { run: (_key, count) => options.scrollDiff(count, "step") },
-    "hunk.review.scrollLineUp": { run: (_key, count) => options.scrollDiff(-count, "step") },
+    "hunk.review.stepDownInHunk": { run: (_key, count) => options.stepDiffLineInHunk(count) },
+    "hunk.review.stepUpInHunk": { run: (_key, count) => options.stepDiffLineInHunk(-count) },
     "hunk.review.scrollCodeLeft": {
       run: (key, count) =>
         options.scrollCodeHorizontally(
@@ -388,6 +390,7 @@ const NOOP_COMMAND_OPTIONS: BuildAppCommandsOptions = (() => {
     scrollCodeHorizontally: noop,
     scrollDiff: noop,
     stepDiffLine: noop,
+    stepDiffLineInHunk: noop,
     selectCursorLine: noop,
     selectLayoutMode: noop,
     hasVisualSelection: () => false,

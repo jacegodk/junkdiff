@@ -279,6 +279,13 @@ export function createPtyHarness() {
     isolatedConfigHome ??= makeTempDir("hunk-tuistory-config-");
     return isolatedConfigHome;
   }
+  // junk writes saved notes and viewed marks under XDG_STATE_HOME; keep test repos out of the
+  // developer's own state.
+  let isolatedStateHome: string | undefined;
+  function stateHome() {
+    isolatedStateHome ??= makeTempDir("hunk-tuistory-state-");
+    return isolatedStateHome;
+  }
 
   function cleanup() {
     while (tempDirs.length > 0) {
@@ -1045,6 +1052,7 @@ end
       env: {
         ...process.env,
         XDG_CONFIG_HOME: configHome(),
+        XDG_STATE_HOME: stateHome(),
         HUNK_MCP_DISABLE: "1",
         HUNK_DISABLE_UPDATE_NOTICE: "1",
         ...options.env,
@@ -1072,6 +1080,7 @@ end
       env: {
         ...process.env,
         XDG_CONFIG_HOME: configHome(),
+        XDG_STATE_HOME: stateHome(),
         HUNK_MCP_DISABLE: "1",
         HUNK_DISABLE_UPDATE_NOTICE: "1",
         ...options.env,

@@ -79,7 +79,7 @@ import {
 import { useHunkSessionBridge } from "./hooks/useHunkSessionBridge";
 import { useMenuController } from "./hooks/useMenuController";
 import { usePaneSlideAnimation } from "./hooks/usePaneSlideAnimation";
-import { resolveGitBranch } from "@hunk/git";
+import { isGitWorktree, resolveGitBranch } from "@hunk/git";
 import { resolveCanonicalPath } from "../core/run/paths";
 import { useReviewPickerController } from "./hooks/useReviewPickerController";
 import { useSavedReviewNotes } from "./hooks/useSavedReviewNotes";
@@ -111,6 +111,7 @@ import type { LineCursor } from "./lib/lineCursors";
 import type { ReviewVerticalStop } from "./lib/reviewVerticalStops";
 import { useFilePresentationController } from "./fileViews/useFilePresentationController";
 import { useFilePresentationRendering } from "./fileViews/useFilePresentationRendering";
+import type { ResolvedFileViewLayout } from "./fileViews/useFileViews";
 import { mergeLineHighlightMaps } from "./highlights/merge";
 import { useLineHighlights } from "./highlights/useLineHighlights";
 import { useLineHighlightsController } from "./highlights/useLineHighlightsController";
@@ -163,9 +164,33 @@ function clamp(value: number, min: number, max: number) {
 }
 
 /** Orchestrate global app state, layout, navigation, and pane coordination. */
+const EMPTY_COLLAPSED_FILE_IDS: ReadonlySet<string> = new Set();
+
+/**
+ * junk: file ids whose presentation draws the whole file as one row, with every hunk mapped to
+ * it — a fold. Such a file offers no separate position per hunk, so hunk navigation skips it.
+ */
+function collapsedFileViewIds(
+  layouts: ReadonlyMap<string, ResolvedFileViewLayout>,
+): ReadonlySet<string> {
+  const collapsed = new Set<string>();
+  for (const [fileId, resolved] of layouts) {
+    const { rows, hunkRows } = resolved.layout;
+    if (
+      rows.length === 1 &&
+      hunkRows.length > 0 &&
+      hunkRows.every((bounds) => bounds.startRow === 0 && bounds.endRow === 0)
+    ) {
+      collapsed.add(fileId);
+    }
+  }
+  return collapsed.size === 0 ? EMPTY_COLLAPSED_FILE_IDS : collapsed;
+}
+
 export function App({
   bootstrap,
   canReloadExtensions = true,
+  offerReviewPicker = true,
   hostClient,
   noticeText,
   onQuit = () => process.exit(0),
@@ -185,6 +210,8 @@ export function App({
   bootstrap: AppBootstrap;
   /** Whether this surface may replace the session-owned extension registry. */
   canReloadExtensions?: boolean;
+  /** junk: whether this mount is the process's first, the only one that offers the review picker. */
+  offerReviewPicker?: boolean;
   hostClient?: HunkSessionBrokerClient;
   noticeText?: string | null;
   onQuit?: () => void;
@@ -233,11 +260,16 @@ export function App({
   const noteGeometryRef = useRef<AgentNoteGeometrySnapshot | null>(null);
   const [lineCursors, setLineCursors] = useState<LineCursor[]>([]);
   const [reviewVerticalStops, setReviewVerticalStops] = useState<ReviewVerticalStop[]>([]);
+  // junk: file ids the presentation currently draws as one collapsed row. Written after the
+  // layouts resolve below; hunk navigation reads it at key time, never during this render.
+  const collapsedFileIdsRef = useRef<ReadonlySet<string>>(EMPTY_COLLAPSED_FILE_IDS);
+  const getCollapsedFileIds = useCallback(() => collapsedFileIdsRef.current, []);
   const review = useTerminalReview({
     files: reviewFiles,
     initialShowAgentNotes: bootstrap.initialShowAgentNotes ?? false,
     lineCursors,
     reviewVerticalStops,
+    getCollapsedFileIds,
     noteGeometry: noteGeometryRef,
     sourceLabel: bootstrap.changeset.sourceLabel,
     stmlEnabled,
@@ -283,20 +315,15 @@ export function App({
   const [storedFocusArea, setFocusArea] = useState<StoredFocusArea>("files");
   const { text: sessionNoticeText, show: showSessionNotice } = useTimedNotice(4_000);
   // Saved notes belong to a worktree and branch, so a VCS review names them by the repository
-  // root it reviews and whatever is checked out there at load time.
+  // root it reviews and whatever is checked out there at load time. A review without a real
+  // repository root behind it (a fixture, a piped patch) keeps nothing.
   const savedNotesIdentity = useMemo(() => {
-    if (bootstrap.input.kind !== "vcs") return null;
-    const worktree = resolveCanonicalPath(
-      bootstrap.reloadContext.repoRoot ?? bootstrap.reloadContext.cwd,
-    );
+    if (bootstrap.input.kind !== "vcs" || !bootstrap.reloadContext.repoRoot) return null;
+    const worktree = resolveCanonicalPath(bootstrap.reloadContext.repoRoot);
+    if (!isGitWorktree(worktree)) return null;
     return { worktree, branch: resolveGitBranch(worktree) ?? "detached" };
     // The branch can change between loads of the same worktree, so re-resolve per changeset.
-  }, [
-    bootstrap.changeset.id,
-    bootstrap.input.kind,
-    bootstrap.reloadContext.cwd,
-    bootstrap.reloadContext.repoRoot,
-  ]);
+  }, [bootstrap.changeset.id, bootstrap.input.kind, bootstrap.reloadContext.repoRoot]);
   useSavedReviewNotes({
     store: review.store,
     identity: savedNotesIdentity,
@@ -362,14 +389,15 @@ export function App({
     onReloadSession,
     onTransientNotice: showTransientNotice,
   });
-  // `junk diff` with no target: offer the worktree and base choice once, right after the first
-  // mount. A reload with a chosen base carries a target, so the remounted App does not ask again.
+  // `junk diff` with no target: offer the worktree and base choice once, right after the
+  // process's first mount. A reload remounts App with `offerReviewPicker` off, so `r` or a
+  // daemon reload never asks again.
   const reviewPickerOfferedRef = useRef(false);
   useEffect(() => {
-    if (reviewPickerOfferedRef.current) return;
+    if (reviewPickerOfferedRef.current || !offerReviewPicker) return;
     reviewPickerOfferedRef.current = true;
     if (reviewPickerApplies(bootstrap.input)) openReviewPicker({ onlyIfChoice: true });
-  }, [bootstrap.input, openReviewPicker]);
+  }, [bootstrap.input, offerReviewPicker, openReviewPicker]);
   const currentViewPreferences = useMemo<PersistedViewPreferences>(
     () => ({
       mode: layoutMode,
@@ -889,6 +917,11 @@ export function App({
       onWarning: showFileViewWarning,
     });
 
+  collapsedFileIdsRef.current = useMemo(
+    () => collapsedFileViewIds(fileViewLayouts),
+    [fileViewLayouts],
+  );
+
   const extensionLineHighlights = useLineHighlights({
     files: filteredFiles,
     highlighters: sessionLineHighlighters,
@@ -1015,6 +1048,17 @@ export function App({
     }
 
     review.moveLineCursor(delta);
+  };
+
+  /** junk: the same step, bounded by the hunk the cursor is in. */
+  const stepDiffLineInHunk = (delta: number) => {
+    if (selectionActionsRef.current?.move(delta)) return;
+    if (cursorLine === "off") {
+      scrollDiff(delta, "step");
+      return;
+    }
+
+    review.moveLineCursorInHunk(delta);
   };
 
   const maxCodeHorizontalOffset = useMemo(() => {
@@ -1360,6 +1404,7 @@ export function App({
         scrollCodeHorizontally,
         scrollDiff,
         stepDiffLine,
+        stepDiffLineInHunk,
         selectCursorLine,
         selectLayoutMode,
         hasVisualSelection: () => selectionActionsRef.current?.hasSelection() ?? false,

@@ -124,6 +124,9 @@ function spawnHunkSession(fixture: FixtureFiles, port: number) {
     env: {
       ...process.env,
       XDG_CONFIG_HOME: testConfigHome,
+      // junk persists viewed marks and notes under XDG_STATE_HOME; keep this session out of the
+      // developer's own state.
+      XDG_STATE_HOME: join(fixture.dir, "state"),
       TERM: "xterm-256color",
       COLUMNS: "120",
       LINES: "24",
@@ -773,12 +776,12 @@ describe("session broker end-to-end", () => {
         "rendered session after probing a conflicting broker listener",
         (current) =>
           conflictingRequestCount > 0 &&
-          current.includes("View  Navigate  Agent  Help") &&
+          current.includes("View  Navigate  Agent  Extensions  Help") &&
           current.includes(fixture.afterName) &&
           current.includes("export const gamma = true;"),
       );
       expect(conflictingRequestCount).toBeGreaterThan(0);
-      expect(transcript).toContain("View  Navigate  Agent  Help");
+      expect(transcript).toContain("View  Navigate  Agent  Extensions  Help");
       expect(transcript).toContain(`${fixture.afterName}`);
       expect(transcript).toContain("export const gamma = true;");
       expect(await quitHunkSession(hunkProc, fixture)).toBe(0);

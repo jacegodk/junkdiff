@@ -144,13 +144,13 @@ Review and shared commands:
 | `hunk.review.replyToActiveNote`                | Reply to active review note                           | `R`                          |
 | `hunk.review.scrollCodeLeft`                   | Scroll code left (shifted scrolls fast)               | `left`, `shift+left`         |
 | `hunk.review.scrollCodeRight`                  | Scroll code right (shifted scrolls fast)              | `right`, `shift+right`       |
-| `hunk.review.scrollLineDown`                   | Scroll down one line                                  | `down`                       |
-| `hunk.review.scrollLineUp`                     | Scroll up one line                                    | `up`                         |
 | `hunk.review.shrinkAroundHunk`                 | Hide 10 unchanged lines around the selected hunk      | `X`                          |
 | `hunk.review.startNote`                        | Add a review note                                     | `c`                          |
 | `hunk.review.startVisualSelection`             | Start visual line selection                           | `v`                          |
 | `hunk.review.stepDown`                         | Move down one line or note                            | `j`                          |
+| `hunk.review.stepDownInHunk`                   | Move down one line inside the hunk                    | `j`                          |
 | `hunk.review.stepUp`                           | Move up one line or note                              | `k`                          |
+| `hunk.review.stepUpInHunk`                     | Move up one line inside the hunk                      | `k`                          |
 | `hunk.review.toggleActiveNoteHandled`          | Flag active review note handled                       | `h`                          |
 | `hunk.review.toggleHunkGap`                    | Expand or collapse the selected context               | `z`                          |
 | `hunk.search.find`                             | Search diff content                                   | `/`                          |

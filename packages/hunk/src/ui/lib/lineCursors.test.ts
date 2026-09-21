@@ -15,6 +15,7 @@ import {
   createLineCursorStabilizer,
   findLineCursorAt,
   findNextLineCursor,
+  firstChangedLineCursorInHunk,
   firstLineCursorInHunk,
   reuseEquivalentLineCursors,
   resolveLineCursor,
@@ -81,12 +82,14 @@ describe("buildLineCursors", () => {
         hunkIndex: 0,
         stableKey: "line:0:old:2",
         target: { side: "old", line: 2 },
+        changed: true,
       },
       {
         fileId: "alpha",
         hunkIndex: 0,
         stableKey: "line:0:new:2",
         target: { side: "new", line: 2 },
+        changed: true,
       },
       {
         fileId: "alpha",
@@ -348,7 +351,24 @@ describe("firstLineCursorInHunk", () => {
       hunkIndex: 1,
       stableKey: "line:1:old:10",
       target: { side: "old", line: 10 },
+      changed: true,
     });
+  });
+
+  test("junk: arriving at a hunk seeds on its first changed line, not the context above it", () => {
+    // A hunk that opens with a context line: the plain seed takes that line, the arriving
+    // seed skips past it to the change.
+    const wrapped = cursorsFor([createContextWrappedFile("alpha", "alpha.ts")], "unified");
+    const first = firstLineCursorInHunk(wrapped, "alpha", 0);
+    const changed = firstChangedLineCursorInHunk(wrapped, "alpha", 0);
+    expect(first?.changed).toBeUndefined();
+    expect(first?.target).toEqual({ side: "new", line: 1 });
+    expect(changed?.changed).toBe(true);
+    expect(changed?.target).toEqual({ side: "old", line: 2 });
+    // A hunk with no changed row on screen keeps whatever the plain seed found.
+    expect(firstChangedLineCursorInHunk(wrapped, "alpha", 7)).toEqual(
+      firstLineCursorInHunk(wrapped, "alpha", 7),
+    );
   });
 
   test("falls back within the file when the hunk is gone", () => {
@@ -388,6 +408,7 @@ describe("resolveLineCursor", () => {
       hunkIndex: 1,
       stableKey: "line:1:old:10",
       target: { side: "old", line: 10 },
+      changed: true,
     });
   });
 

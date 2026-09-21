@@ -7,12 +7,14 @@ import {
   createTestStoredNote,
 } from "../../../../../test/helpers/review-store-helpers";
 import {
-  SAVED_NOTES_TTL_MS,
-  diffSavedNotes,
   mergeSavedNotes,
   readSavedNotes,
   resolveNotesStateDir,
   resolveSavedNotesPath,
+} from "../../app/savedNotesFile";
+import {
+  SAVED_NOTES_TTL_MS,
+  diffSavedNotes,
   restoreSavedNotes,
   savedNoteFromStored,
   type SavedNote,

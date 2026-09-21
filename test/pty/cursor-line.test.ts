@@ -88,7 +88,7 @@ describe("PTY current line", () => {
       expect(clicked).not.toContain("Copied selection to clipboard");
 
       // The old-side cursor steps to the same row's new side before advancing to line 6.
-      await session.press("j");
+      await session.press("down");
       const stepped = await session.text({ immediate: true });
       const steppedLens = stepped.split("Current line").at(-1) ?? "";
       expect(steppedLens).toContain("export const line05 = 5;");

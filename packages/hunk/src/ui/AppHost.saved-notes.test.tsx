@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { act } from "react";
 import { removeTestDirectory } from "../../../../test/helpers/filesystem";
-import { resolveSavedNotesPath } from "../core/review/savedNotes";
+import { resolveSavedNotesPath } from "../app/savedNotesFile";
 
 const { getBundledVcsCatalog } = await import("../app/vcsCatalog");
 const { loadAppBootstrap } = await import("../core/changeset/loaders");

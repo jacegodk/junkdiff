@@ -107,6 +107,11 @@ export interface ReviewNavigationModel {
   notes?: readonly ReviewNoteCursor[];
   /** Effective stored-note identity from which an exact-note move begins. */
   activeNoteId?: string;
+  /**
+   * junk: files a presentation has collapsed to a single row. Their hunks have no distinct
+   * position on screen, so hunk navigation steps over them instead of stopping once per hunk.
+   */
+  collapsedFileKeys?: ReadonlySet<string>;
 }
 
 /**
@@ -255,8 +260,15 @@ function planHunkMove(
   selection: ReviewSemanticSelection,
   delta: number,
 ): ReviewSelectionMoveTarget | null {
-  const cursors = reviewStreamCursors(model.files);
-  const target = stepCursors(cursors, cursors, selection, delta);
+  const streamCursors = reviewStreamCursors(model.files);
+  const collapsed = model.collapsedFileKeys;
+  const cursors =
+    collapsed && collapsed.size > 0
+      ? streamCursors.filter((cursor) => !collapsed.has(cursor.fileKey))
+      : streamCursors;
+  // A selection inside a collapsed file is not among the cursors, so the step falls back to
+  // the nearest stream position and lands on the first hunk outside it.
+  const target = stepCursors(cursors, streamCursors, selection, delta);
   if (!target) {
     return null;
   }

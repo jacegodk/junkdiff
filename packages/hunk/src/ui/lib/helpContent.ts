@@ -45,8 +45,8 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
         description: "move through lines and notes",
       },
       {
-        commandIds: ["hunk.review.scrollLineUp", "hunk.review.scrollLineDown"],
-        description: "scroll one line",
+        commandIds: ["hunk.review.stepUpInHunk", "hunk.review.stepDownInHunk"],
+        description: "move inside the hunk",
       },
       { commandIds: ["hunk.review.pageDown"], description: "page down" },
       { commandIds: ["hunk.review.pageUp"], description: "page up" },
@@ -107,7 +107,7 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
           "hunk.review.expandAroundHunk",
           "hunk.review.shrinkAroundHunk",
         ],
-        description: "toggle / show 10 more / hide 10 unchanged lines",
+        description: "toggle / more / less unchanged lines",
       },
       {
         commandIds: [

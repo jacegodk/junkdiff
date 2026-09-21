@@ -1,6 +1,6 @@
 import { useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { resolveConfiguredExtensions } from "../app/extensionBootstrap";
+import { builtInExtensionsOf, resolveConfiguredExtensions } from "../app/extensionBootstrap";
 import { ReviewProducer } from "../app/review/producer";
 import { reviewDescriptorAfterReload, reviewDescriptorResourceCwd } from "../app/delegatedReview";
 import { loadConfiguredSessionBootstrap } from "../app/sessionBootstrap";
@@ -302,6 +302,8 @@ export function AppHost({
             discoveryCatalog,
             // Reuse the session hub so the mounted toast surface keeps receiving notifications.
             notifications: currentExtensions?.notifications,
+            // junk: keep the built-in set the running load has; a host that loaded none stays so.
+            builtInExtensions: builtInExtensionsOf(currentExtensions),
             onProvisionalLoad: (result) => activeExtensionSession.trackPrepared(result),
             assertActive: () => {
               if (quitRequestedRef.current) throw reloadRefusedDuringShutdown();
@@ -610,6 +612,7 @@ export function AppHost({
       key={appVersion}
       bootstrap={activeBootstrap}
       canReloadExtensions={extensionOwnership === "owned"}
+      offerReviewPicker={appVersion === 0}
       hostClient={hostClient}
       noticeText={startupNoticeText}
       onQuit={quitAfterShutdownEvent}

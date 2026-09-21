@@ -89,6 +89,11 @@ export function resolveGitBranch(cwd: string): string | null {
   return git(cwd, "symbolic-ref", "--short", "-q", "HEAD");
 }
 
+/** Whether `cwd` is inside a git working tree; false for a missing path or a bare repository. */
+export function isGitWorktree(cwd: string): boolean {
+  return git(cwd, "rev-parse", "--is-inside-work-tree") === "true";
+}
+
 export function resolveGitReviewBases(cwd: string): GitReviewBases {
   const branch = resolveGitBranch(cwd);
   const defaultBranch = resolveGitDefaultBranch(cwd);

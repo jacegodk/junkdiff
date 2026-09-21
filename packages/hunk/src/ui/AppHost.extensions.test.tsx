@@ -497,7 +497,6 @@ describe("reload keeps launch extension authority", () => {
           () => readProbeLog(logPath).filter((line) => line === "factory").length === 2,
           "the replacement extension to register again",
         );
-
         await act(async () => {
           await setup.mockInput.typeText("s");
         });

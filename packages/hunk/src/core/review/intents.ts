@@ -94,6 +94,11 @@ export interface ReviewIntentFacts {
    * full set.
    */
   annotations?: ReviewAnnotationIndex;
+  /**
+   * junk: files the caller's presentation has collapsed to one row. Only the caller knows how
+   * each file is currently drawn, so hunk navigation is told rather than guessing.
+   */
+  collapsedFileKeys?: ReadonlySet<string>;
 }
 
 export type ReviewIntent =
@@ -428,6 +433,7 @@ function planSelectionMove(
         noteId: item.entry.note.id,
       })),
       activeNoteId: selectActiveStoredReviewNote(state)?.note.id,
+      ...(facts.collapsedFileKeys ? { collapsedFileKeys: facts.collapsedFileKeys } : {}),
     },
     selectNormalizedSelection(state),
     { scope: intent.scope, delta: intent.delta },

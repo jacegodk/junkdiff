@@ -55,6 +55,38 @@ function move(
 }
 
 describe("review selection movement", () => {
+  test("junk: hunk navigation steps over the hunks of a collapsed file", () => {
+    const collapsed: ReviewNavigationModel = {
+      ...model(),
+      collapsedFileKeys: new Set(["beta"]),
+    };
+
+    // Forward from alpha's last hunk jumps past both of beta's hunks into gamma.
+    expect(move(collapsed, at("alpha", 1), "hunk", 1)).toEqual({
+      at: "gamma:0",
+      reveal: { anchor: "file-top", scrollToNote: false },
+    });
+    // Backward likewise, and the reveal still shows the hunk rather than the file header.
+    expect(move(collapsed, at("gamma", 0), "hunk", -1)).toEqual({
+      at: "alpha:1",
+      reveal: { anchor: "hunk", scrollToNote: false },
+    });
+    // A selection left inside the collapsed file steps out to the nearest hunk beyond it.
+    expect(move(collapsed, at("beta", 0), "hunk", 1).at).toBe("gamma:0");
+    expect(move(collapsed, at("beta", 1), "hunk", -1).at).toBe("alpha:1");
+    // With nothing collapsed the walk is unchanged.
+    expect(move(model(), at("alpha", 1), "hunk", 1).at).toBe("beta:0");
+    // Every file collapsed leaves the selection alone rather than teleporting it.
+    expect(
+      move(
+        { ...model(), collapsedFileKeys: new Set(["alpha", "beta", "gamma"]) },
+        at("alpha", 0),
+        "hunk",
+        1,
+      ).at,
+    ).toBeNull();
+  });
+
   // Intent: the wrap policy is a named per-scope decision, not arithmetic that happens to differ.
   test("declares one wrap policy per scope", () => {
     expect(REVIEW_SELECTION_WRAP_POLICY).toEqual({

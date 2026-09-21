@@ -93,6 +93,7 @@ import type { LineRevealPlacement } from "../lib/hunkScroll";
 import {
   EMPTY_LINE_CURSORS,
   findLineCursorAt,
+  firstChangedLineCursorInHunk,
   firstLineCursorInHunk,
   hasLineCursor,
   lineCursorAt,
@@ -103,6 +104,7 @@ import {
   EMPTY_REVIEW_VERTICAL_STOPS,
   findNextReviewNoteStop,
   findNextReviewVerticalStop,
+  findNextReviewVerticalStopInHunk,
   type ReviewVerticalStop,
 } from "../lib/reviewVerticalStops";
 import { agentNoteMarkupWidth } from "../lib/agentNoteGeometry";
@@ -245,6 +247,8 @@ export interface TerminalReview {
   /** Adopt the hunk a viewport settled on, without asking any viewport to move. */
   anchorSelection: (fileId: string, hunkIndex: number) => void;
   moveLineCursor: (delta: number) => void;
+  /** junk: move the line cursor without leaving the hunk it is in. */
+  moveLineCursorInHunk: (delta: number) => void;
   /** Select a visible semantic note without moving the viewport. */
   activateNote: (noteId: string) => void;
   /** Step only between semantic note cards in their rendered order. */
@@ -326,6 +330,7 @@ export function useTerminalReview({
   initialShowAgentNotes = false,
   lineCursors = EMPTY_LINE_CURSORS,
   reviewVerticalStops = EMPTY_REVIEW_VERTICAL_STOPS,
+  getCollapsedFileIds,
   noteGeometry,
   sourceLabel = "",
   stmlEnabled = false,
@@ -340,6 +345,8 @@ export function useTerminalReview({
   lineCursors?: LineCursor[];
   /** Mixed rendered line and semantic-note stops used by vertical keyboard movement. */
   reviewVerticalStops?: ReviewVerticalStop[];
+  /** junk: read the files the presentation currently draws as a single collapsed row. */
+  getCollapsedFileIds?: () => ReadonlySet<string>;
   /**
    * Identity of the review's input as a whole.
    *
@@ -747,7 +754,13 @@ export function useTerminalReview({
       return;
     }
 
-    applyLineCursor(firstLineCursorInHunk(lineCursors, selectedFileId, selectedHunkIndex));
+    // junk: a marker that was somewhere else has been navigated here, so it lands on the
+    // hunk's change; the review's very first placement keeps the top of the hunk.
+    applyLineCursor(
+      lineCursorRef.current
+        ? firstChangedLineCursorInHunk(lineCursors, selectedFileId, selectedHunkIndex)
+        : firstLineCursorInHunk(lineCursors, selectedFileId, selectedHunkIndex),
+    );
   }, [
     applyLineCursor,
     lineCursors,
@@ -851,6 +864,21 @@ export function useTerminalReview({
     [currentReviewVerticalStop, focusReviewNoteStop, reviewVerticalStops, revealLineCursor],
   );
 
+  /** junk: move through lines and notes, but only within the hunk the cursor is in. */
+  const moveLineCursorInHunk = useCallback(
+    (delta: number) => {
+      const next = findNextReviewVerticalStopInHunk(
+        reviewVerticalStops,
+        currentReviewVerticalStop(),
+        delta,
+      );
+      if (!next) return;
+      if (next.kind === "line") revealLineCursor(next.cursor);
+      else focusReviewNoteStop(next);
+    },
+    [currentReviewVerticalStop, focusReviewNoteStop, reviewVerticalStops, revealLineCursor],
+  );
+
   /** Move only through note cards, using the active presentation's visual order. */
   const moveNoteCursor = useCallback(
     (delta: number) => {
@@ -880,9 +908,23 @@ export function useTerminalReview({
    * the session's comment navigation, and later a browser client all move identically.
    */
   const moveSelection = useCallback(
-    (scope: ReviewSelectionScope, delta: number) =>
-      runIntent({ type: "selection/move", scope, delta }, { annotations }),
-    [annotations, runIntent],
+    (scope: ReviewSelectionScope, delta: number) => {
+      // junk: a file drawn as one row has no per-hunk position, so plain hunk navigation is
+      // told to step over it. Annotated moves still reach its notes, which stay on that row.
+      const collapsedIds = scope === "hunk" ? getCollapsedFileIds?.() : undefined;
+      const collapsedFileKeys = collapsedIds?.size
+        ? new Set(
+            [...collapsedIds]
+              .map((fileId) => keyByFileId.get(fileId))
+              .filter((key): key is string => key !== undefined),
+          )
+        : undefined;
+      return runIntent(
+        { type: "selection/move", scope, delta },
+        { annotations, ...(collapsedFileKeys ? { collapsedFileKeys } : {}) },
+      );
+    },
+    [annotations, getCollapsedFileIds, keyByFileId, runIntent],
   );
 
   /**
@@ -1822,6 +1864,7 @@ export function useTerminalReview({
     cancelDraftNote,
     clearLiveComments,
     moveLineCursor,
+    moveLineCursorInHunk,
     moveNoteCursor,
     moveSelection,
     navigateToLocation,

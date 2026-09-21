@@ -1,11 +1,29 @@
 import { describe, expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { MouseButtons } from "@opentui/core/testing";
+import { KeyEvent, type ParsedKey } from "@opentui/core";
 import { act } from "react";
 import type { AppBootstrap } from "../core/bootstrap";
 import { createTestVcsAppBootstrap } from "../../../../test/helpers/app-bootstrap";
 import { createTestDiffFile, lines } from "../../../../test/helpers/diff-helpers";
 import { measureTextWidth } from "./lib/text";
+
+/** Build one key event exactly as a terminal reports it, with no stand-in sequence. */
+function createTestKeyEvent(fields: Partial<ParsedKey>): KeyEvent {
+  return new KeyEvent({
+    name: "",
+    sequence: "",
+    raw: "",
+    ctrl: false,
+    meta: false,
+    option: false,
+    shift: false,
+    number: false,
+    eventType: "press",
+    source: "raw",
+    ...fields,
+  });
+}
 
 // These tests drive the DiffPane mouse-drag text-selection path end to end: begin/update/end
 // copy-selection, double/triple-click word and line expansion, and the OSC 52 clipboard copy.
@@ -196,7 +214,11 @@ describe("DiffPane copy selection", () => {
         await setup.mockMouse.drag(start!.x + 2, start!.y, end!.x + 4, end!.y, MouseButtons.LEFT);
       });
       await flush(setup);
-      await act(async () => setup.mockInput.pressKey("PAGEDOWN"));
+      // A named key event, as a terminal sends it: the mock's "PAGEDOWN" also carries a "P"
+      // sequence, which junk binds to the review picker.
+      await act(async () => {
+        setup.renderer.keyInput.emit("keypress", createTestKeyEvent({ name: "pagedown" }));
+      });
       await flush(setup);
       await copyCommittedSelection(setup);
 

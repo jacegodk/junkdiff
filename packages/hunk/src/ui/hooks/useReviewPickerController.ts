@@ -41,9 +41,14 @@ export function useReviewPickerController({
   onTransientNotice,
 }: UseReviewPickerControllerOptions) {
   const [state, setState] = useState<ReviewPickerState | null>(null);
+  // Only a review backed by a real repository root has worktrees and bases to choose from; a
+  // fixture or a piped patch names none, and must not pick from the process's own directory.
   const root = useMemo(
-    () => resolveCanonicalPath(bootstrap.reloadContext.repoRoot ?? bootstrap.reloadContext.cwd),
-    [bootstrap.reloadContext.cwd, bootstrap.reloadContext.repoRoot],
+    () =>
+      bootstrap.reloadContext.repoRoot === undefined
+        ? null
+        : resolveCanonicalPath(bootstrap.reloadContext.repoRoot),
+    [bootstrap.reloadContext.repoRoot],
   );
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -96,6 +101,10 @@ export function useReviewPickerController({
    */
   const openReviewPicker = useCallback(
     (options: { onlyIfChoice?: boolean } = {}): boolean => {
+      if (root === null) {
+        if (!options.onlyIfChoice) onTransientNotice("No repository to pick a worktree from.");
+        return false;
+      }
       const worktrees = listGitWorktrees(root);
       if (worktrees.length > 1) {
         setState({
@@ -111,7 +120,7 @@ export function useReviewPickerController({
       }
       return openBaseStep(root);
     },
-    [openBaseStep, root],
+    [onTransientNotice, openBaseStep, root],
   );
 
   const closeReviewPicker = useCallback(() => setState(null), []);

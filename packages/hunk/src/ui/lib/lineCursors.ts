@@ -24,6 +24,8 @@ export interface LineCursor {
   target: UserNoteLineTarget;
   /** Exact collapsed gap that produced this cursor, when it is a revealed source line. */
   expandedGapKey?: string;
+  /** junk: set on an added or removed line; a context line carries no change of its own. */
+  changed?: true;
 }
 
 export const EMPTY_LINE_CURSORS: LineCursor[] = [];
@@ -76,6 +78,8 @@ function rowLineCursors(fileId: string, bounds: DiffSectionRowBounds): LineCurso
       hunkIndex,
       stableKey,
       target,
+      // Only a changed row is addressed per side; a context row took the branch above.
+      changed: true,
       ...(bounds.expandedGapKey ? { expandedGapKey: bounds.expandedGapKey } : {}),
     });
   }
@@ -165,6 +169,32 @@ export function firstLineCursorInHunk(
   }
 
   return nearestCursorInFile(cursors, fileId, hunkIndex) ?? null;
+}
+
+/**
+ * junk: the first added or removed line of one hunk, for a marker arriving from another hunk.
+ *
+ * Navigating to a hunk is a move to the change it carries, so the marker — and anything
+ * anchored to it, such as a new note — lands on that change rather than on the context line
+ * above it. A hunk with no changed row on screen falls back to its first line.
+ */
+export function firstChangedLineCursorInHunk(
+  cursors: LineCursor[],
+  fileId: string | undefined,
+  hunkIndex: number,
+): LineCursor | null {
+  if (!fileId) {
+    return cursors[0] ?? null;
+  }
+
+  const changed = cursors.find(
+    (cursor) =>
+      cursor.fileId === fileId &&
+      cursor.hunkIndex === hunkIndex &&
+      cursor.changed === true &&
+      cursor.expandedGapKey === undefined,
+  );
+  return changed ?? firstLineCursorInHunk(cursors, fileId, hunkIndex);
 }
 
 /** Move forward or backward through the review-stream line cursor list. */

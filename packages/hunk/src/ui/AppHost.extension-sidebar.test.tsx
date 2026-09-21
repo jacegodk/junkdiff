@@ -300,7 +300,7 @@ describe("extension sidebar views", () => {
         `        " frozen=" + Object.isFrozen(file) + "/" + Object.isFrozen(line) + "\\n",\n` +
         `    );\n` +
         `  });\n` +
-        `  hunk.registerCommand({ id: "delayed", title: "Probe delayed selection", key: "x" }, async (ctx) => {\n` +
+        `  hunk.registerCommand({ id: "delayed", title: "Probe delayed selection", key: "Z" }, async (ctx) => {\n` +
         `    const line = ctx.selection.currentLine;\n` +
         `    await Bun.sleep(100);\n` +
         `    appendFileSync(${JSON.stringify(logPath)}, "delayed " + (line ? line.side + ":" + line.line : "none") + "\\n");\n` +
@@ -335,7 +335,7 @@ describe("extension sidebar views", () => {
       // controller's ref before React renders, so the following command must
       // still observe line 2 instead of the previous rendered line.
       await act(async () => {
-        setup.renderer.keyInput.emit("keypress", createTestKeyEvent({ name: "x", sequence: "x" }));
+        setup.renderer.keyInput.emit("keypress", createTestKeyEvent({ name: "Z", sequence: "Z" }));
         setup.renderer.keyInput.emit("keypress", createTestKeyEvent({ name: "j", sequence: "j" }));
         setup.renderer.keyInput.emit("keypress", createTestKeyEvent({ name: "Y", sequence: "Y" }));
       });

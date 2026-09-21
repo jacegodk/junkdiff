@@ -9,6 +9,7 @@ import {
   createReviewVerticalStopStabilizer,
   findNextReviewNoteStop,
   findNextReviewVerticalStop,
+  findNextReviewVerticalStopInHunk,
 } from "./reviewVerticalStops";
 
 const theme = resolveTheme("github-dark-default", null);
@@ -168,6 +169,53 @@ describe("review vertical stops", () => {
     expect(stops.map(stopLabel)).toEqual(["line:new:1", "note:view-note", "line:new:2"]);
     expect(findNextReviewNoteStop(stops, stops[0]!, 1)?.noteId).toBe("view-note");
     expect(findNextReviewNoteStop(stops, stops[2]!, -1)?.noteId).toBe("view-note");
+  });
+
+  test("junk: stepping inside a hunk stops at its edges and never crosses a file or gap", () => {
+    const stop = (hunkIndex: number, line: number, expandedGapKey?: string) => ({
+      kind: "line" as const,
+      cursor: {
+        fileId: "alpha",
+        hunkIndex,
+        stableKey: `line:${hunkIndex}:new:${line}`,
+        target: { side: "new" as const, line },
+        ...(expandedGapKey ? { expandedGapKey } : {}),
+      },
+    });
+    const otherFile = {
+      kind: "line" as const,
+      cursor: {
+        fileId: "beta",
+        hunkIndex: 0,
+        stableKey: "line:0:new:1",
+        target: { side: "new" as const, line: 1 },
+      },
+    };
+    const note = {
+      kind: "note" as const,
+      fileId: "alpha",
+      hunkIndex: 0,
+      noteId: "user:1",
+      stableKey: "note:user:1",
+    };
+    // A revealed context line, then hunk 0 with a note in it, then hunk 1, then another file.
+    const stops = [stop(0, 5, "before:0"), stop(0, 6), note, stop(0, 7), stop(1, 20), otherFile];
+
+    // Inside the hunk it moves, and its note counts as one of the hunk's stops.
+    expect(findNextReviewVerticalStopInHunk(stops, stops[1]!, 1)).toBe(note);
+    expect(findNextReviewVerticalStopInHunk(stops, stops[1]!, 2)).toBe(stops[3]!);
+    // Past the hunk's last row it stops rather than entering hunk 1.
+    expect(findNextReviewVerticalStopInHunk(stops, stops[1]!, 3)).toBe(stops[3]!);
+    expect(findNextReviewVerticalStopInHunk(stops, stops[3]!, 1)).toBeNull();
+    // Upward it stops before the revealed context line above the hunk.
+    expect(findNextReviewVerticalStopInHunk(stops, stops[3]!, -2)).toBe(stops[1]!);
+    expect(findNextReviewVerticalStopInHunk(stops, stops[1]!, -1)).toBeNull();
+    // From hunk 1 it never reaches the next file.
+    expect(findNextReviewVerticalStopInHunk(stops, stops[4]!, 1)).toBeNull();
+    // A cursor on revealed context has no hunk to stay in, so it walks like the plain step.
+    expect(findNextReviewVerticalStopInHunk(stops, stops[0]!, 1)).toBe(stops[1]!);
+    expect(findNextReviewVerticalStopInHunk(stops, null, 1)).toBe(stops[0]!);
+    expect(findNextReviewVerticalStopInHunk(stops, stops[1]!, 0)).toBeNull();
   });
 
   test("stabilizes equivalent remeasurements", () => {

@@ -6,9 +6,21 @@ import type { VcsCatalog } from "../core/vcs/types";
 import { resolveExtensionVcsAdapters } from "../extensions/apply";
 import { bindExtensionEventBus, retireExtensionLoadResult } from "../extensions/events";
 import { JUNK_BUILT_IN_EXTENSIONS } from "../extensions/default/builtIn";
+import type { BuiltInExtension } from "../extensions/host";
 import { loadStartupExtensions } from "../extensions/startup";
 import type { ExtensionNotificationHub } from "../extensions/notifications";
 import type { ExtensionLoadResult } from "../extensions/types";
+
+/**
+ * junk's built-ins that one extension load ran with. A reload passes this for its current load,
+ * so a session started without them (a test host, an embedding) does not gain panes on reload.
+ */
+export function builtInExtensionsOf(load: ExtensionLoadResult | undefined): BuiltInExtension[] {
+  if (!load) return [];
+  return JUNK_BUILT_IN_EXTENSIONS.filter((builtIn) =>
+    load.loaded.some((entry) => entry.id === builtIn.id && entry.origin === "bundled"),
+  );
+}
 
 export interface ResolveConfiguredExtensionsOptions {
   runtimeInput: CliInput;
@@ -24,6 +36,8 @@ export interface ResolveConfiguredExtensionsOptions {
   previousLoad?: ExtensionLoadResult;
   /** Session-owned registry borrowed by an embedded surface without lifecycle authority. */
   borrowedLoad?: ExtensionLoadResult;
+  /** junk: built-ins to load ahead of discovered extensions; every junk built-in when absent. */
+  builtInExtensions?: readonly BuiltInExtension[];
   /** Publish provisional ownership before imports or asynchronous factories can suspend. */
   onProvisionalLoad?: (result: ExtensionLoadResult) => void;
   /** Throw when the caller's lifetime ended so no later staged registry can be created. */
@@ -96,7 +110,7 @@ export async function resolveConfiguredExtensions(
       cliExtensionPaths: configured.input.options.extensionPaths,
       projectRoot: configured.projectRoot,
       reservedExtensionIds: options.baseVcsCatalog.reservedIds,
-      builtInExtensions: JUNK_BUILT_IN_EXTENSIONS,
+      builtInExtensions: options.builtInExtensions ?? JUNK_BUILT_IN_EXTENSIONS,
       notifications: options.notifications ?? options.previousLoad?.notifications,
       previousLoad: options.previousLoad,
       deferEventBusBinding: true,
@@ -125,7 +139,7 @@ export async function resolveConfiguredExtensions(
         cliExtensionPaths: configured.input.options.extensionPaths,
         projectRoot: configured.projectRoot,
         reservedExtensionIds: options.baseVcsCatalog.reservedIds,
-        builtInExtensions: JUNK_BUILT_IN_EXTENSIONS,
+        builtInExtensions: options.builtInExtensions ?? JUNK_BUILT_IN_EXTENSIONS,
         notifications: extensions.notifications,
         previousLoad: extensions,
         onProvisionalLoad: ownProvisionalLoad,
