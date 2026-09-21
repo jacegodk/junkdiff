@@ -2107,6 +2107,7 @@ describe("useTerminalReview", () => {
         hunkIndex: 1,
         stableKey: "line:1:new:12",
         target: { side: "new", line: 12 },
+        changed: true,
       });
       expect(expectValue(controllerRef.current).selectedHunkIndex).toBe(1);
     } finally {

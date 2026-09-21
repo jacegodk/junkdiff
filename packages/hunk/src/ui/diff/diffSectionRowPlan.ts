@@ -1,5 +1,6 @@
 import type { ReviewGapReveal } from "../../core/review/expansion";
 import { reviewExpansionSide } from "../../core/review/expansion";
+import { normalizedReviewSourceLines } from "../../core/review/geometry";
 import { DEFAULT_TAB_WIDTH } from "../../core/run/tabWidth";
 import { DEFAULT_HUNK_GAP } from "../../core/run/reviewGap";
 import type { DiffFile } from "../../core/changeset/model";
@@ -47,10 +48,11 @@ function buildBaseRows(
   highlightedDiff: HighlightedDiffCode | null | undefined,
   theme: AppTheme,
   tabWidth: number,
+  sourceTotalLines: number | undefined,
 ) {
   return layout === "split"
-    ? buildSplitRows(file, highlightedDiff ?? null, theme, tabWidth)
-    : buildUnifiedRows(file, highlightedDiff ?? null, theme, tabWidth);
+    ? buildSplitRows(file, highlightedDiff ?? null, theme, tabWidth, sourceTotalLines)
+    : buildUnifiedRows(file, highlightedDiff ?? null, theme, tabWidth, sourceTotalLines);
 }
 
 /** Build the shared file-level diff plan consumed by rendering and geometry measurement. */
@@ -75,7 +77,12 @@ export function buildDiffSectionRowPlan({
     };
   }
 
-  const baseRows = buildBaseRows(file, layout, highlightedDiff, theme, tabWidth);
+  // junk: the loaded source's length is what gives a partial patch its trailing gap.
+  const sourceTotalLines =
+    sourceStatus?.kind === "loaded"
+      ? normalizedReviewSourceLines(sourceStatus.text).length
+      : undefined;
+  const baseRows = buildBaseRows(file, layout, highlightedDiff, theme, tabWidth, sourceTotalLines);
   const rows = expandCollapsedRows(baseRows, {
     layout,
     expandedKeys,

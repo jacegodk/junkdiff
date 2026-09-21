@@ -34,6 +34,8 @@ export interface DiffRowViewProps {
   onHoverRow?: (rowKey: string) => void;
   onStartUserNoteAtHunk?: (hunkIndex: number, target?: UserNoteLineTarget) => void;
   onToggleGap?: (gapKey: string) => void;
+  /** junk: reveal more of one gap from one of its ends. */
+  onRevealGap?: (gapKey: string, side: "head" | "tail", lines: number) => void;
 }
 
 /** Reject a planned row variant that lacks a mounted row view. */
@@ -66,6 +68,7 @@ export const DiffRowView = memo(function DiffRowViewComponent({
   onHoverRow,
   onStartUserNoteAtHunk,
   onToggleGap,
+  onRevealGap,
 }: DiffRowViewProps) {
   if (isPlannedDiffMetaReviewRow(plannedRow)) {
     return (
@@ -79,6 +82,7 @@ export const DiffRowView = memo(function DiffRowViewComponent({
         onHoverRow={onHoverRow}
         onStartUserNoteAtHunk={onStartUserNoteAtHunk}
         onToggleGap={onToggleGap}
+        onRevealGap={onRevealGap}
       />
     );
   }

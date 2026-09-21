@@ -71,6 +71,10 @@ describe("junk: context around the selected hunk", () => {
       expect(frame).toContain("16 unchanged lines");
       expect(frame).toContain("23 unchanged lines");
       expect(frame).not.toContain("line07 = 7;");
+      // Each collapsed row offers the same reveal by mouse: ▼ opens it from the top, ▲ from
+      // the bottom.
+      expect(frame).toContain("▼");
+      expect(frame).toContain("▲");
 
       await act(async () => {
         await setup.mockInput.typeText("x");
@@ -95,6 +99,18 @@ describe("junk: context around the selected hunk", () => {
       expect(frame).toContain("23 unchanged lines");
       expect(frame).not.toContain("line07 = 7;");
       expect(frame).not.toContain("line24 = 24;");
+
+      // Below the last hunk of a Git diff there is no gap until the file's source has been
+      // read: the press records what it wants and the row appears with those lines shown.
+      await act(async () => {
+        await setup.mockInput.typeText("]");
+      });
+      await act(async () => {
+        await setup.mockInput.typeText("x");
+      });
+      frame = await waitForFrame(setup, (f) => f.includes("line54 = 54;"));
+      expect(frame).toContain("line54 = 54;");
+      expect(frame).toContain("line57 = 57;");
     } finally {
       await act(async () => {
         setup.renderer.destroy();

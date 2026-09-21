@@ -34,6 +34,12 @@ export interface ReviewGapSource {
   additionLines: readonly string[];
   deletionLines: readonly string[];
   isPartial: boolean;
+  /**
+   * junk: the expansion side's full line count, once that source has been read. A partial
+   * patch — every ordinary Git diff — carries no file length, so without this there is no
+   * trailing gap and nothing below the last hunk can be revealed.
+   */
+  totalLines?: number;
 }
 
 export interface ReviewGapAddress {
@@ -79,13 +85,20 @@ export function parseReviewGapId(gapId: string) {
     : undefined;
 }
 
-/** Adapt one projected semantic file onto the geometry gap addressing reads. */
-export function reviewGapSourceForFile(file: ReviewFileV1): ReviewGapSource {
+/**
+ * Adapt one projected semantic file onto the geometry gap addressing reads.
+ *
+ * junk: `totalLines` is the expansion side's length from the file's loaded source, which is
+ * what gives a partial patch a trailing gap. Callers that have not read the source pass
+ * nothing and see the same geometry as before.
+ */
+export function reviewGapSourceForFile(file: ReviewFileV1, totalLines?: number): ReviewGapSource {
   return {
     hunks: file.hunks,
     additionLines: file.additionLines,
     deletionLines: file.deletionLines,
     isPartial: file.flags.partial,
+    ...(totalLines === undefined ? {} : { totalLines }),
   };
 }
 
@@ -138,12 +151,37 @@ export function reviewLeadingGap(
  * apart, so no trailing gap is offered even though the file has unchanged lines after
  * the hunk. Every consumer agrees on hiding it — correcting the count changes what the
  * terminal renders and is staged as its own change.
+ *
+ * junk: a partial patch has a trailing gap once `totalLines` names the expansion side's
+ * length. Everything after the last hunk is unchanged context, so both sides run equally
+ * long and the old side's length follows from the new side's.
  */
 export function reviewTrailingGap(source: ReviewGapSource): ReviewGapAddress | undefined {
   const hunkIndex = source.hunks.length - 1;
   const hunk = source.hunks[hunkIndex];
-  if (!hunk || source.isPartial) {
+  if (!hunk) {
     return undefined;
+  }
+
+  if (source.isPartial) {
+    // Both sides must have rows for their end lines to be comparable; the zero-count shape
+    // is the A2 limitation above and stays hidden.
+    if (source.totalLines === undefined || hunk.additionCount <= 0 || hunk.deletionCount <= 0) {
+      return undefined;
+    }
+    const newEnd = hunk.additionStart + hunk.additionCount - 1;
+    const count = source.totalLines - newEnd;
+    if (count <= 0) {
+      return undefined;
+    }
+    const partialOldStart = hunk.deletionStart + hunk.deletionCount;
+    return {
+      position: "trailing",
+      hunkIndex,
+      oldRange: [partialOldStart, partialOldStart + count - 1],
+      newRange: [newEnd + 1, newEnd + count],
+      lineCount: count,
+    };
   }
 
   const oldCount = source.deletionLines.length - (hunk.deletionLineIndex + hunk.deletionCount);

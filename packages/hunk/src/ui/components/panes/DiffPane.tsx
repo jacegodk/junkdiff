@@ -395,6 +395,7 @@ export function DiffPane({
   onScrollCodeHorizontally = () => {},
   onSelectFile,
   onToggleGap = NOOP_TOGGLE_GAP,
+  onRevealGap,
   onLineCursorsChange,
   onReviewVerticalStopsChange,
   currentLinePaintRequested = false,
@@ -490,6 +491,8 @@ export function DiffPane({
   onScrollCodeHorizontally?: (delta: number) => void;
   onSelectFile: (fileId: string) => void;
   onToggleGap?: (fileId: string, gapKey: string) => void;
+  /** junk: reveal more of one gap from one of its ends. */
+  onRevealGap?: (fileId: string, gapKey: string, side: "head" | "tail", lines: number) => void;
   onLineCursorsChange?: (cursors: LineCursor[]) => void;
   onReviewVerticalStopsChange?: (stops: ReviewVerticalStop[]) => void;
   currentLinePaintRequested?: boolean;
@@ -2687,6 +2690,9 @@ export function DiffPane({
                         }
                         onSelect={selectFileCallback(file.id)}
                         onToggleGap={(gapKey) => onToggleGap(file.id, gapKey)}
+                        onRevealGap={(gapKey, side, lines) =>
+                          onRevealGap?.(file.id, gapKey, side, lines)
+                        }
                       />
                     );
                   })}

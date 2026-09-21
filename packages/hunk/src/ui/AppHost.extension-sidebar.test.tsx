@@ -359,7 +359,8 @@ describe("extension sidebar views", () => {
       // Crossing into beta updates both the cursor and semantic selection in
       // one input flush. The command must receive them as one coherent address.
       await act(async () => {
-        setup.renderer.keyInput.emit("keypress", createTestKeyEvent({ name: "j", sequence: "j" }));
+        // junk: crossing into another file is the arrow's move; j stays inside the hunk.
+        setup.renderer.keyInput.emit("keypress", createTestKeyEvent({ name: "down" }));
         setup.renderer.keyInput.emit("keypress", createTestKeyEvent({ name: "Y", sequence: "Y" }));
       });
       await flushUntil(

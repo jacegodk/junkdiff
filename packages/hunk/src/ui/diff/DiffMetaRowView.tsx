@@ -18,7 +18,12 @@ export interface DiffMetaRowViewProps {
   onHoverRow?: (rowKey: string) => void;
   onStartUserNoteAtHunk?: (hunkIndex: number, target?: UserNoteLineTarget) => void;
   onToggleGap?: (gapKey: string) => void;
+  /** junk: reveal `lines` more of this gap, from its start (head) or its end (tail). */
+  onRevealGap?: (gapKey: string, side: "head" | "tail", lines: number) => void;
 }
+
+/** junk: unchanged lines one click on a gap row's arrow reveals. */
+const GAP_ARROW_STEP = 10;
 
 /** Build the rendered label text for one collapsed gap row. */
 function collapsedRowLabel(text: string, expandable: boolean) {
@@ -42,13 +47,35 @@ export function DiffMetaRowView({
   onHoverRow,
   onStartUserNoteAtHunk,
   onToggleGap,
+  onRevealGap,
 }: DiffMetaRowViewProps) {
   const { anchorId, row } = plannedRow;
   if (row.type === "hunk-header" && !showHunkHeaders) {
     return null;
   }
 
+  // junk: a collapsed gap can be opened from either end without opening all of it. The arrow
+  // pointing down extends the code above, the one pointing up extends the code below.
+  const gapKey = row.type === "collapsed" ? reviewGapId(row.position, row.hunkIndex) : null;
+  const gapArrows =
+    gapKey && onRevealGap
+      ? [
+          {
+            key: "reveal-head",
+            text: "▼",
+            quiet: true,
+            onClick: () => onRevealGap(gapKey, "head", GAP_ARROW_STEP),
+          },
+          {
+            key: "reveal-tail",
+            text: "▲",
+            quiet: true,
+            onClick: () => onRevealGap(gapKey, "tail", GAP_ARROW_STEP),
+          },
+        ]
+      : [];
   const badges = [
+    ...gapArrows,
     showAddNoteBadge
       ? {
           key: "user-note",
@@ -56,7 +83,9 @@ export function DiffMetaRowView({
           onClick: () => onStartUserNoteAtHunk?.(row.hunkIndex),
         }
       : null,
-  ].filter((badge): badge is { key: string; text: string; onClick: () => void } => Boolean(badge));
+  ].filter((badge): badge is { key: string; text: string; quiet?: boolean; onClick: () => void } =>
+    Boolean(badge),
+  );
   const badgeWidth = badges.reduce((total, badge) => total + badge.text.length + 1, 0);
   const collapsedExpandable = row.type === "collapsed" && Boolean(onToggleGap);
   const labelText =
@@ -138,7 +167,10 @@ export function DiffMetaRowView({
             badge.onClick();
           }}
         >
-          <text fg={theme.noteTitleText} bg={theme.noteTitleBackground}>{` ${badge.text}`}</text>
+          <text
+            fg={badge.quiet ? theme.badgeNeutral : theme.noteTitleText}
+            bg={badge.quiet ? theme.panelAlt : theme.noteTitleBackground}
+          >{` ${badge.text}`}</text>
         </box>
       ))}
     </box>

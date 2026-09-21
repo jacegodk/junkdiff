@@ -72,6 +72,7 @@ export function DiffSectionBody({
   onStartUserNoteAtHunk,
   onRowPlanChange,
   onToggleGap,
+  onRevealGap,
   showLineNumbers = true,
   showHunkHeaders = true,
   sourceStatus,
@@ -107,6 +108,8 @@ export function DiffSectionBody({
   onStartUserNoteAtHunk?: (hunkIndex: number, target?: UserNoteLineTarget) => void;
   onRowPlanChange?: (rowPlan: DiffSectionRowPlan, highlighted: boolean) => void;
   onToggleGap?: (gapKey: string) => void;
+  /** junk: reveal more of one gap from one of its ends. */
+  onRevealGap?: (gapKey: string, side: "head" | "tail", lines: number) => void;
   showLineNumbers?: boolean;
   showHunkHeaders?: boolean;
   sourceStatus?: FileSourceStatus | undefined;
@@ -141,6 +144,8 @@ export function DiffSectionBody({
   onStartUserNoteAtHunkRef.current = onStartUserNoteAtHunk;
   const onToggleGapRef = useRef(onToggleGap);
   onToggleGapRef.current = onToggleGap;
+  const onRevealGapRef = useRef(onRevealGap);
+  onRevealGapRef.current = onRevealGap;
 
   const clearHoverIdleTimeout = useCallback(() => {
     if (hoverIdleTimeoutRef.current) {
@@ -277,6 +282,12 @@ export function DiffSectionBody({
   // incoming props so rows keep hiding affordances when the handlers are not provided.
   const stableToggleGap = useCallback((gapKey: string) => onToggleGapRef.current?.(gapKey), []);
   const gapToggleHandler = fileHasSourceFetcher && onToggleGap ? stableToggleGap : undefined;
+  const stableRevealGap = useCallback(
+    (gapKey: string, side: "head" | "tail", lines: number) =>
+      onRevealGapRef.current?.(gapKey, side, lines),
+    [],
+  );
+  const gapRevealHandler = fileHasSourceFetcher && onRevealGap ? stableRevealGap : undefined;
   const stableStartUserNoteAtHunk = useCallback(
     (hunkIndex: number, target?: UserNoteLineTarget) =>
       onStartUserNoteAtHunkRef.current?.(hunkIndex, target),
@@ -461,6 +472,7 @@ export function DiffSectionBody({
               onHoverRow={handleHoverRow}
               onStartUserNoteAtHunk={startUserNoteAtHunkHandler}
               onToggleGap={gapToggleHandler}
+              onRevealGap={gapRevealHandler}
             />
           </box>
         );

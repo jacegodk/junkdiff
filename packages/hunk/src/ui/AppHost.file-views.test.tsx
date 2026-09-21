@@ -1075,8 +1075,9 @@ describe("AppHost file views", () => {
       let frame = await waitForFrame(setup, (nextFrame) => nextFrame.includes("▶ Hunk 1"));
       expect(frame).not.toContain("▶ Hunk 2");
 
+      // junk: crossing from one hunk to the next is the arrow's move, not j's.
       await act(async () => {
-        await setup.mockInput.typeText("j");
+        await setup.mockInput.pressArrow("down");
       });
       frame = await waitForFrame(setup, (nextFrame) => nextFrame.includes("▶ Hunk 2"));
       expect(frame).not.toContain("▶ Hunk 1");

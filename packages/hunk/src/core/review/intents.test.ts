@@ -969,6 +969,46 @@ describe("notes/start-draft", () => {
     ).toThrow(ReviewIntentPlanningError);
   });
 
+  test("junk: one gap can be revealed from either end, and rejects a gap that is not there", () => {
+    const plan = planReviewIntent(createTestReviewState(), {
+      type: "expansion/reveal-gap",
+      fileKey: "alpha",
+      gapId: "before:1",
+      side: "head",
+      delta: 4,
+    });
+    expect(plan.actions).toEqual([
+      {
+        type: "expansion/reveal",
+        fileKey: "alpha",
+        gapId: "before:1",
+        reveal: { head: 4, tail: 0 },
+      },
+    ]);
+    expect(plan.outcome).toMatchObject({ gapIds: ["before:1"], anyOpen: true });
+
+    // Revealing past the gap's length opens it outright.
+    expect(
+      planReviewIntent(createTestReviewState(), {
+        type: "expansion/reveal-gap",
+        fileKey: "alpha",
+        gapId: "before:1",
+        side: "tail",
+        delta: 99,
+      }).actions,
+    ).toEqual([{ type: "expansion/toggle", fileKey: "alpha", gapId: "before:1", expanded: true }]);
+
+    expect(() =>
+      planReviewIntent(createTestReviewState(), {
+        type: "expansion/reveal-gap",
+        fileKey: "alpha",
+        gapId: "before:9",
+        side: "head",
+        delta: 4,
+      }),
+    ).toThrow(ReviewIntentPlanningError);
+  });
+
   test("rejects a hunk the file does not have", () => {
     expect(() =>
       planReviewIntent(

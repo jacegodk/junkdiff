@@ -266,7 +266,8 @@ describe("user keybindings", () => {
         await setup.mockInput.typeText("j");
       });
       await flush(setup);
-      expect(seen).toContain("hunk.review.stepDown");
+      // junk: j is the in-hunk step; the arrows carry the unrestricted one.
+      expect(seen).toContain("hunk.review.stepDownInHunk");
     });
   });
 

@@ -42,6 +42,7 @@ import {
   reviewNoteCurrentOwnerHunkIndex,
   reviewNoteHasDescendants,
   selectActiveStoredReviewNote,
+  selectReviewSourceTotalLines,
   selectNavigableStoredReviewNotes,
   selectNormalizedSelection,
   selectReviewFileByKey,
@@ -151,7 +152,15 @@ export type ReviewIntent =
   /** Flip one addressable collapsed gap between collapsed and expanded. */
   | { type: "expansion/toggle"; fileKey: string; gapId: string }
   /** junk: show `delta` more (or, negative, fewer) unchanged lines on both sides of one hunk. */
-  | { type: "expansion/reveal-around"; fileKey: string; hunkIndex: number; delta: number };
+  | { type: "expansion/reveal-around"; fileKey: string; hunkIndex: number; delta: number }
+  /** junk: show `delta` more (or fewer) of one gap's lines, from its start or its end. */
+  | {
+      type: "expansion/reveal-gap";
+      fileKey: string;
+      gapId: string;
+      side: "head" | "tail";
+      delta: number;
+    };
 
 /**
  * Every intent type, as a value rather than only as a type.
@@ -182,6 +191,7 @@ export const REVIEW_INTENT_TYPES = [
   "notes/clear",
   "expansion/toggle",
   "expansion/reveal-around",
+  "expansion/reveal-gap",
 ] as const satisfies readonly ReviewIntent["type"][];
 
 export type ReviewIntentType = (typeof REVIEW_INTENT_TYPES)[number];
@@ -299,6 +309,7 @@ export interface ReviewIntentOutcomeByType {
   "notes/clear": ReviewNotesClearedOutcome;
   "expansion/toggle": ReviewExpansionToggledOutcome;
   "expansion/reveal-around": ReviewExpansionRevealedOutcome;
+  "expansion/reveal-gap": ReviewExpansionRevealedOutcome;
 }
 
 export interface ReviewIntentPlan {
@@ -632,6 +643,71 @@ function planDraftReplyStart(
 }
 
 /**
+ * junk: grow or shrink what one gap shows from one of its ends.
+ *
+ * A gap whose revealed lines cover it becomes fully expanded, and one shrunk to nothing
+ * collapses. Shrinking an already expanded gap treats it as revealed entirely from that end,
+ * so the first press takes lines off the side the reviewer asked about.
+ */
+function planOneGapReveal(
+  state: ReviewState,
+  fileKey: string,
+  address: ReviewGapAddress,
+  side: keyof ReviewGapReveal,
+  delta: number,
+): { gapId: string; actions: ReviewAction[]; anyOpen: boolean } {
+  const gapId = reviewGapId(address.position, address.hunkIndex);
+  const current = state.expandedGaps.find((gap) => gap.fileKey === fileKey && gap.gapId === gapId);
+  const shown: ReviewGapReveal = current?.expanded
+    ? { head: 0, tail: 0, [side]: address.lineCount }
+    : (current?.reveal ?? { head: 0, tail: 0 });
+  const reveal = clampReviewGapReveal({ ...shown, [side]: shown[side] + delta }, address.lineCount);
+  if (reveal.head + reveal.tail >= address.lineCount) {
+    return {
+      gapId,
+      anyOpen: true,
+      actions: current?.expanded
+        ? []
+        : [{ type: "expansion/toggle", fileKey, gapId, expanded: true }],
+    };
+  }
+  return {
+    gapId,
+    anyOpen: reveal.head + reveal.tail > 0,
+    actions: [{ type: "expansion/reveal", fileKey, gapId, reveal }],
+  };
+}
+
+/** junk: grow or shrink one named gap from one end, for the arrows a gap row draws. */
+function planExpansionRevealGap(
+  state: ReviewState,
+  intent: Extract<ReviewIntent, { type: "expansion/reveal-gap" }>,
+): ReviewIntentPlan {
+  const file = requireReviewFile(state, intent.fileKey);
+  const address = reviewGapAddress(
+    reviewGapSourceForFile(file, selectReviewSourceTotalLines(state, file.key)),
+    intent.gapId,
+  );
+  if (!address) {
+    throw new ReviewIntentPlanningError(
+      "gap-not-found",
+      `Review gap ${intent.gapId} does not exist in ${file.path}.`,
+    );
+  }
+  const step = planOneGapReveal(state, file.key, address, intent.side, intent.delta);
+  return {
+    actions: step.actions,
+    outcome: {
+      type: "expansion/revealed",
+      fileKey: file.key,
+      side: reviewExpansionSide(file.changeKind),
+      gapIds: [step.gapId],
+      anyOpen: step.anyOpen,
+    },
+  };
+}
+
+/**
  * junk: plan showing `delta` more unchanged lines on each side of one hunk.
  *
  * The gap before the hunk grows from its end (`tail`), the gap after it from its start
@@ -650,7 +726,7 @@ function planExpansionRevealAround(
       `Hunk ${intent.hunkIndex} does not exist in ${file.path}.`,
     );
   }
-  const source = reviewGapSourceForFile(file);
+  const source = reviewGapSourceForFile(file, selectReviewSourceTotalLines(state, file.key));
   const before = reviewLeadingGap(source, intent.hunkIndex);
   const next = reviewLeadingGap(source, intent.hunkIndex + 1);
   const trailing = next ? undefined : reviewTrailingGap(source);
@@ -661,30 +737,34 @@ function planExpansionRevealAround(
   let anyOpen = false;
   const adjust = (address: ReviewGapAddress | undefined, side: keyof ReviewGapReveal) => {
     if (!address) return;
-    const gapId = reviewGapId(address.position, address.hunkIndex);
-    const current = state.expandedGaps.find(
-      (gap) => gap.fileKey === file.key && gap.gapId === gapId,
-    );
-    const shown: ReviewGapReveal = current?.expanded
-      ? { head: 0, tail: 0, [side]: address.lineCount }
-      : (current?.reveal ?? { head: 0, tail: 0 });
-    const reveal = clampReviewGapReveal(
-      { ...shown, [side]: shown[side] + intent.delta },
-      address.lineCount,
-    );
-    gapIds.push(gapId);
-    if (reveal.head + reveal.tail >= address.lineCount) {
-      anyOpen = true;
-      if (!current?.expanded) {
-        actions.push({ type: "expansion/toggle", fileKey: file.key, gapId, expanded: true });
-      }
-      return;
-    }
-    if (reveal.head + reveal.tail > 0) anyOpen = true;
-    actions.push({ type: "expansion/reveal", fileKey: file.key, gapId, reveal });
+    const step = planOneGapReveal(state, file.key, address, side, intent.delta);
+    gapIds.push(step.gapId);
+    if (step.anyOpen) anyOpen = true;
+    actions.push(...step.actions);
   };
   adjust(before, "tail");
   adjust(after, "head");
+  // The gap after the last hunk is only addressable once the file's source has been read, so
+  // the first press records what it wants and the load below makes the row appear with it.
+  if (!after && intent.delta > 0 && file.flags.partial && file.sourceIdentity !== undefined) {
+    const trailingId = reviewGapId("trailing", file.hunks.length - 1);
+    if (!gapIds.includes(trailingId)) {
+      const current = state.expandedGaps.find(
+        (gap) => gap.fileKey === file.key && gap.gapId === trailingId,
+      );
+      if (!current?.expanded) {
+        const shown = current?.reveal ?? { head: 0, tail: 0 };
+        gapIds.push(trailingId);
+        anyOpen = true;
+        actions.push({
+          type: "expansion/reveal",
+          fileKey: file.key,
+          gapId: trailingId,
+          reveal: { head: shown.head + intent.delta, tail: shown.tail },
+        });
+      }
+    }
+  }
 
   return {
     actions,
@@ -706,7 +786,10 @@ function planExpansionToggle(
   const file = requireReviewFile(state, intent.fileKey);
   // Validated against the same addressing every renderer draws and every note-line check
   // accepts, so a gap a surface can offer is exactly a gap this intent can expand (A1).
-  const address = reviewGapAddress(reviewGapSourceForFile(file), intent.gapId);
+  const address = reviewGapAddress(
+    reviewGapSourceForFile(file, selectReviewSourceTotalLines(state, file.key)),
+    intent.gapId,
+  );
   if (!address) {
     throw new ReviewIntentPlanningError(
       "gap-not-found",
@@ -1028,6 +1111,8 @@ export function planReviewIntent(
       return planExpansionToggle(state, intent);
     case "expansion/reveal-around":
       return planExpansionRevealAround(state, intent);
+    case "expansion/reveal-gap":
+      return planExpansionRevealGap(state, intent);
     case "notes/create-user":
       return planUserNoteCreation(state, facts);
     case "notes/update-user":

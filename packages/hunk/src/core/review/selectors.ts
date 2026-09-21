@@ -7,6 +7,7 @@
  * rather than a lookup say so by name.
  */
 import type { ReviewGapReveal } from "./expansion";
+import { normalizedReviewSourceLines } from "./geometry";
 import { normalizeDiffPath } from "../changeset/diffPaths";
 import {
   reviewGapId,
@@ -591,7 +592,7 @@ export interface ReviewGapTarget {
  * knowledge of its fetcher.
  */
 export function selectReviewGapForSelection(
-  state: Pick<ReviewState, "document" | "filter" | "selection">,
+  state: Pick<ReviewState, "document" | "filter" | "selection" | "sourceStatusByFileKey">,
 ): ReviewGapTarget | undefined {
   const { fileKey, hunkIndex } = selectNormalizedSelection(state);
   const file = selectReviewFileByKey(state, fileKey);
@@ -599,7 +600,7 @@ export function selectReviewGapForSelection(
     return undefined;
   }
 
-  const gapSource = reviewGapSourceForFile(file);
+  const gapSource = reviewGapSourceForFile(file, selectReviewSourceTotalLines(state, file.key));
   for (let index = hunkIndex; index < file.hunks.length; index += 1) {
     if (reviewLeadingGap(gapSource, index)) {
       return { fileKey: file.key, gapId: reviewGapId("before", index) };
@@ -610,6 +611,20 @@ export function selectReviewGapForSelection(
   return trailing
     ? { fileKey: file.key, gapId: reviewGapId("trailing", trailing.hunkIndex) }
     : undefined;
+}
+
+/**
+ * junk: the expansion side's line count for one file, once its source has been read.
+ *
+ * The trailing gap of an ordinary Git diff exists only when this is known, so every surface
+ * that asks about gaps derives it the same way: from the source the review already loaded.
+ */
+export function selectReviewSourceTotalLines(
+  state: Pick<ReviewState, "sourceStatusByFileKey">,
+  fileKey: string,
+): number | undefined {
+  const status = state.sourceStatusByFileKey[fileKey];
+  return status?.kind === "loaded" ? normalizedReviewSourceLines(status.text).length : undefined;
 }
 
 /** junk: select the partly revealed gaps of every file, keyed by gap id. */

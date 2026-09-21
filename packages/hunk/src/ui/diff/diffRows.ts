@@ -688,6 +688,7 @@ export function buildSplitRows(
   highlighted: HighlightedDiffCode | null,
   theme: AppTheme,
   tabWidth = DEFAULT_TAB_WIDTH,
+  sourceTotalLines?: number,
 ): DiffRow[] {
   const rows: DiffRow[] = [];
   const deletionLines = highlighted?.deletionLines ?? [];
@@ -795,7 +796,13 @@ export function buildSplitRows(
     }
   }
 
-  const trailingGap = reviewTrailingGap(file.metadata);
+  // junk: an ordinary Git patch names no file length, so the gap after the last hunk exists
+  // only once the file's source has been read.
+  const trailingGap = reviewTrailingGap(
+    sourceTotalLines === undefined
+      ? file.metadata
+      : { ...file.metadata, totalLines: sourceTotalLines },
+  );
   if (trailingGap) {
     rows.push(collapsedGapRow(file, trailingGap, "collapsed:"));
   }
@@ -809,6 +816,7 @@ export function buildUnifiedRows(
   highlighted: HighlightedDiffCode | null,
   theme: AppTheme,
   tabWidth = DEFAULT_TAB_WIDTH,
+  sourceTotalLines?: number,
 ): DiffRow[] {
   const rows: DiffRow[] = [];
   const deletionLines = highlighted?.deletionLines ?? [];
@@ -909,7 +917,13 @@ export function buildUnifiedRows(
     }
   }
 
-  const trailingGap = reviewTrailingGap(file.metadata);
+  // junk: an ordinary Git patch names no file length, so the gap after the last hunk exists
+  // only once the file's source has been read.
+  const trailingGap = reviewTrailingGap(
+    sourceTotalLines === undefined
+      ? file.metadata
+      : { ...file.metadata, totalLines: sourceTotalLines },
+  );
   if (trailingGap) {
     rows.push(collapsedGapRow(file, trailingGap, "unified:collapsed:"));
   }

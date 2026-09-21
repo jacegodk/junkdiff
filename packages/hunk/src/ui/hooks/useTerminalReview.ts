@@ -268,6 +268,8 @@ export interface TerminalReview {
   toggleSelectedHunkGap: () => void;
   /** junk: show (`count` > 0) or hide 10×count unchanged lines on both sides of the selected hunk. */
   revealAroundSelectedHunk: (count: number) => void;
+  /** junk: show `delta` more of one gap's lines, measured from its start (head) or end (tail). */
+  revealGapSide: (fileId: string, gapKey: string, side: "head" | "tail", delta: number) => void;
   visibleFiles: DiffFile[];
   addLiveComment: (
     input: CommentToolInput,
@@ -1170,6 +1172,24 @@ export function useTerminalReview({
     [fileByKey, lowerCommand, runIntent, startSourceLoad],
   );
 
+  /** junk: grow one gap from one end, for the arrows a collapsed row draws. */
+  const revealGapSide = useCallback(
+    (fileId: string, gapKey: string, side: "head" | "tail", delta: number) => {
+      const file = allFiles.find((entry) => entry.id === fileId);
+      const fileKey = keyByFileId.get(fileId);
+      if (!file?.sourceFetcher || !fileKey) return;
+      const revealed = runIntent({
+        type: "expansion/reveal-gap",
+        fileKey,
+        gapId: gapKey,
+        side,
+        delta,
+      });
+      if (revealed.anyOpen) startSourceLoad(file, fileKey, revealed.side);
+    },
+    [allFiles, keyByFileId, runIntent, startSourceLoad],
+  );
+
   /**
    * Resolve one session-daemon navigation request against the current review and select it.
    *
@@ -1851,6 +1871,7 @@ export function useTerminalReview({
     toggleGap,
     toggleSelectedHunkGap,
     revealAroundSelectedHunk,
+    revealGapSide,
     visibleFiles,
     addAgentLineHighlight,
     addLiveComment,

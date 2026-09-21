@@ -1812,6 +1812,7 @@ export function App({
             onFileViewRowFailure={reportFileViewRowFailure}
             onSelectFile={jumpToFile}
             onToggleGap={review.toggleGap}
+            onRevealGap={review.revealGapSide}
             onViewportCenteredHunkChange={(fileId, hunkIndex) =>
               review.anchorSelection(fileId, hunkIndex)
             }
