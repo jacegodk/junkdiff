@@ -115,6 +115,8 @@ export interface BuildAppCommandsOptions {
   canAlignCurrentLine: boolean;
   canApplyFilePresentationToAllMatching: boolean;
   canDeleteActiveNote?: boolean;
+  /** junk: whether a stored note is active and no draft is open. */
+  canToggleActiveNoteHandled?: boolean;
   canEditActiveNote?: boolean;
   canReplyToActiveNote?: boolean;
   canRefreshCurrentInput: boolean;
@@ -122,6 +124,8 @@ export interface BuildAppCommandsOptions {
   applyFilePresentationToAllMatching: () => void;
   focusFilter: () => void;
   deleteActiveNote?: () => void;
+  /** junk: set or clear `handled` on the active note. */
+  toggleActiveNoteHandled?: () => void;
   editActiveNote?: () => void;
   replyToActiveNote?: () => void;
   /** Step shared semantic selection through one scope. */
@@ -217,6 +221,10 @@ function builtinCommandHandlers(
     "hunk.review.deleteActiveNote": {
       isEnabled: () => Boolean(options.canDeleteActiveNote),
       run: () => options.deleteActiveNote?.(),
+    },
+    "hunk.review.toggleActiveNoteHandled": {
+      isEnabled: () => Boolean(options.canToggleActiveNoteHandled),
+      run: () => options.toggleActiveNoteHandled?.(),
     },
     "hunk.review.previousNote": {
       run: (_key, count, entry) => options.moveNoteCursor((entry.verticalDirection ?? -1) * count),

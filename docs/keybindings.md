@@ -147,6 +147,7 @@ Review and shared commands:
 | `hunk.review.startVisualSelection`             | Start visual line selection                    | `v`                          |
 | `hunk.review.stepDown`                         | Move down one line or note                     | `down`, `j`                  |
 | `hunk.review.stepUp`                           | Move up one line or note                       | `up`, `k`                    |
+| `hunk.review.toggleActiveNoteHandled`          | Flag active review note handled                | `X`                          |
 | `hunk.review.toggleHunkGap`                    | Expand or collapse the selected context        | `z`                          |
 | `hunk.search.find`                             | Search diff content                            | `/`                          |
 | `hunk.search.next`                             | Next search match, or note                     | `n`                          |

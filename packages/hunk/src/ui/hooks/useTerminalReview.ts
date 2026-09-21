@@ -228,6 +228,8 @@ export interface TerminalReview {
   showHandledNotes: boolean;
   /** junk: flip `showHandledNotes`. */
   toggleHandledNotes: () => void;
+  /** junk: set or clear the `handled` tag on one stored note; saved user notes persist it. */
+  toggleNoteHandled: (noteId: string) => void;
   userNotesByFileId: Record<string, UserReviewNote[]>;
   lineCursor: LineCursor | null;
   /** Read the current cursor synchronously between terminal key events. */
@@ -931,6 +933,23 @@ export function useTerminalReview({
       visible: !store.getSnapshot().showHandledNotes,
     });
   }, [store]);
+
+  /** junk: flip the `handled` tag on one stored note, user or live. */
+  const toggleNoteHandled = useCallback(
+    (noteId: string) => {
+      const snapshot = store.getSnapshot();
+      const entry = [...snapshot.userNotes, ...snapshot.liveNotes].find(
+        (candidate) => candidate.note.id === noteId,
+      );
+      if (!entry) return;
+      store.dispatch({
+        type: "notes/set-handled",
+        noteId,
+        handled: !entry.note.tags?.includes("handled"),
+      });
+    },
+    [store],
+  );
 
   /** Start one full-source load and mirror its progress into review state as a status. */
   const startSourceLoad = useCallback(
@@ -1743,6 +1762,7 @@ export function useTerminalReview({
     showAgentNotes: state.showAgentNotes,
     showHandledNotes: state.showHandledNotes,
     toggleHandledNotes,
+    toggleNoteHandled,
     userNotesByFileId,
     scrollToNote,
     selectedFile,

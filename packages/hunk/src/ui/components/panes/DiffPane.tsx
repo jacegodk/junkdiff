@@ -161,6 +161,7 @@ export function storedReviewNoteActions({
   onRemoveLiveNote,
   onRemoveUserNote,
   onReplyToNote,
+  onToggleNoteHandled,
   source,
 }: {
   editable: boolean;
@@ -170,9 +171,14 @@ export function storedReviewNoteActions({
   onRemoveLiveNote?: (noteId: string) => void;
   onRemoveUserNote?: (noteId: string) => void;
   onReplyToNote?: (noteId: string, options?: { preserveViewport?: boolean }) => void;
+  /** junk: flip the `handled` tag; offered on every stored note. */
+  onToggleNoteHandled?: (noteId: string) => void;
   source: "agent" | "ai" | "user";
 }): VisibleAgentNote["actions"] {
   const actions: NonNullable<VisibleAgentNote["actions"]> = {};
+  if (onToggleNoteHandled) {
+    actions.onToggleHandled = () => onToggleNoteHandled(noteId);
+  }
   if (source === "user" && editable && onEditUserNote) {
     actions.onEdit = () => onEditUserNote(noteId, { preserveViewport: true });
   }
@@ -373,6 +379,7 @@ export function DiffPane({
   onReplyToNote,
   onRemoveLiveNote,
   onRemoveUserNote,
+  onToggleNoteHandled,
   onSaveDraftNote,
   onStartUserNoteAtHunk,
   onUpdateDraftNote,
@@ -411,7 +418,7 @@ export function DiffPane({
   selectedFileId?: string;
   selectedHunkIndex: number;
   activeNoteId?: string;
-  noteActionKeyLabels?: { delete: string; edit: string; reply: string };
+  noteActionKeyLabels?: { delete: string; edit: string; reply: string; handled: string };
   cursorLine?: CursorLine;
   lineCursor?: LineCursor | null;
   lineCursorRevealRequest?: {
@@ -464,6 +471,8 @@ export function DiffPane({
   onReplyToNote?: (noteId: string, options?: { preserveViewport?: boolean }) => void;
   onRemoveLiveNote?: (noteId: string) => void;
   onRemoveUserNote?: (noteId: string) => void;
+  /** junk: flip the `handled` tag on a stored note. */
+  onToggleNoteHandled?: (noteId: string) => void;
   onSaveDraftNote?: (editorBody?: string) => void;
   onStartUserNoteAtHunk?: StartUserNoteAtHunk;
   onUpdateDraftNote?: (body: string) => void;
@@ -667,6 +676,7 @@ export function DiffPane({
                 onRemoveLiveNote,
                 onRemoveUserNote,
                 onReplyToNote,
+                onToggleNoteHandled,
                 source,
               })
             : undefined;
@@ -826,6 +836,7 @@ export function DiffPane({
     onReplyToNote,
     onRemoveLiveNote,
     onRemoveUserNote,
+    onToggleNoteHandled,
     onSaveDraftNote,
     onUpdateDraftNote,
     noteActionKeyLabels,

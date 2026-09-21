@@ -542,6 +542,50 @@ describe("drafts", () => {
     ).toBe(true);
   });
 
+  test("setting handled tags one note, user or live, and drops focus only when handled notes are hidden", () => {
+    const base = {
+      ...createTestReviewState(["alpha"], { showAgentNotes: true }),
+      activeNoteId: "user-1",
+      liveNotes: [createTestStoredNote({ id: "live-1", fileKey: "alpha" })],
+      userNotes: [createTestStoredNote({ id: "user-1", fileKey: "alpha", source: "user" })],
+    };
+
+    const handled = reduceReviewState(base, {
+      type: "notes/set-handled",
+      noteId: "user-1",
+      handled: true,
+    });
+    expect(handled.userNotes[0]?.note.tags).toEqual(["handled"]);
+    expect(handled.liveNotes[0]?.note.tags).toBeUndefined();
+    expect(handled.activeNoteId).toBe("user-1");
+    expect(
+      reduceReviewState(handled, { type: "notes/set-handled", noteId: "user-1", handled: true }),
+    ).toBe(handled);
+
+    const cleared = reduceReviewState(handled, {
+      type: "notes/set-handled",
+      noteId: "user-1",
+      handled: false,
+    });
+    expect(cleared.userNotes[0]?.note.tags).toBeUndefined();
+
+    const liveHandled = reduceReviewState(base, {
+      type: "notes/set-handled",
+      noteId: "live-1",
+      handled: true,
+    });
+    expect(liveHandled.liveNotes[0]?.note.tags).toEqual(["handled"]);
+
+    const hidden = reduceReviewState(
+      { ...base, showHandledNotes: false },
+      { type: "notes/set-handled", noteId: "user-1", handled: true },
+    );
+    expect(hidden.activeNoteId).toBeNull();
+    expect(
+      reduceReviewState(base, { type: "notes/set-handled", noteId: "missing", handled: true }),
+    ).toBe(base);
+  });
+
   test("replacing user notes installs the given set and keeps focus only on a surviving note", () => {
     const started = reduceReviewState(createTestReviewState(), { type: "draft/start", draft });
     const saved = reduceReviewState(started, {

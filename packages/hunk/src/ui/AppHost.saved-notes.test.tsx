@@ -214,6 +214,74 @@ describe("saved review notes", () => {
     }
   });
 
+  test("X flags the active note handled and writes the flag to the notes file, X again clears it", async () => {
+    const dir = createRepo();
+    const notesPath = resolveSavedNotesPath(join(stateHome, "hunk"), dir, "main");
+    mkdirSync(dirname(notesPath), { recursive: true });
+    writeFileSync(
+      notesPath,
+      JSON.stringify({
+        version: 1,
+        worktree: dir,
+        branch: "main",
+        notes: {
+          "user:1": {
+            id: "user:1",
+            filePath: "alpha.ts",
+            hunkIndex: 0,
+            side: "new",
+            line: 2,
+            body: "flag me",
+            at: new Date().toISOString(),
+          },
+        },
+      }),
+    );
+    const bootstrap = await loadAppBootstrap(
+      { kind: "vcs", staged: false, options: { mode: "unified", excludeUntracked: true } },
+      { cwd: dir, vcsCatalog: getBundledVcsCatalog() },
+    );
+    const setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 120, height: 30 });
+    try {
+      await waitForFrame(setup, (f) => f.includes("flag me"));
+      // `}` selects the annotated hunk and makes its first note active.
+      await act(async () => {
+        await setup.mockInput.typeText("}");
+      });
+      await act(async () => {
+        await setup.mockInput.typeText("X");
+      });
+      let frame = await waitForFrame(setup, (f) => /Your note · now · handled/.test(f));
+      expect(frame).toMatch(/Your note · now · handled/);
+      let saved = false;
+      for (let attempt = 0; attempt < 40 && !saved; attempt++) {
+        await flush(setup);
+        saved = JSON.parse(readFileSync(notesPath, "utf8")).notes["user:1"]?.handled === true;
+        if (!saved) await Bun.sleep(50);
+      }
+      expect(saved).toBe(true);
+
+      await act(async () => {
+        await setup.mockInput.typeText("X");
+      });
+      frame = await waitForFrame(setup, (f) => !/· handled/.test(f));
+      expect(frame).not.toMatch(/· handled/);
+      let cleared = false;
+      for (let attempt = 0; attempt < 40 && !cleared; attempt++) {
+        await flush(setup);
+        cleared =
+          JSON.parse(readFileSync(notesPath, "utf8")).notes["user:1"]?.handled === undefined;
+        if (!cleared) await Bun.sleep(50);
+      }
+      expect(cleared).toBe(true);
+    } finally {
+      await act(async () => {
+        setup.renderer.destroy();
+      });
+      await removeTestDirectory(dir);
+    }
+  });
+
   test("with no search running, n steps to a note and E edits it", async () => {
     const dir = createRepo();
     const notesPath = resolveSavedNotesPath(join(stateHome, "hunk"), dir, "main");

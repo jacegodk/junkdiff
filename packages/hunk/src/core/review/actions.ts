@@ -30,6 +30,8 @@ export type ReviewAction =
   | { type: "notes/set-visibility"; visible: boolean }
   /** junk: show or hide the notes tagged `handled`. */
   | { type: "notes/set-handled-visibility"; visible: boolean }
+  /** junk: set or clear the `handled` tag on one stored note, user or live. */
+  | { type: "notes/set-handled"; noteId: string; handled: boolean }
   | { type: "notes/add-live"; notes: readonly ReviewStoredNote[] }
   | { type: "notes/remove-live"; noteId: string }
   /** Clear mutable notes for one file, or for the whole review when no file is named. */

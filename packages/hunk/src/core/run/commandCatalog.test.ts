@@ -193,6 +193,12 @@ describe("app command catalog", () => {
     expect(
       lowerAppCommandToReviewIntent(entry("hunk.review.deleteActiveNote"), { count: 1, state }),
     ).toEqual({ type: "notes/remove-user", noteId: "user-1" });
+    expect(
+      lowerAppCommandToReviewIntent(entry("hunk.review.toggleActiveNoteHandled"), {
+        count: 1,
+        state,
+      }),
+    ).toEqual({ type: "notes/set-handled", noteId: "user-1", handled: true });
   });
 
   test("does not retarget actions away from the one active note", () => {

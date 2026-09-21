@@ -1324,6 +1324,7 @@ export function App({
         canAlignCurrentLine: cursorLine !== "off" && review.lineCursor !== null,
         canApplyFilePresentationToAllMatching: selectedFileViewBulkTarget !== null,
         canDeleteActiveNote: activeRemovableNote !== undefined && review.draftNote === null,
+        canToggleActiveNoteHandled: activeNoteId !== undefined && review.draftNote === null,
         canEditActiveNote: activeEditableNoteId !== undefined && review.draftNote === null,
         canReplyToActiveNote: activeReplyableNoteId !== undefined && review.draftNote === null,
         canRefreshCurrentInput,
@@ -1340,6 +1341,9 @@ export function App({
         },
         editActiveNote: () => {
           if (activeEditableNoteId) startUserNoteEdit(activeEditableNoteId);
+        },
+        toggleActiveNoteHandled: () => {
+          if (activeNoteId) review.toggleNoteHandled(activeNoteId);
         },
         replyToActiveNote: () => {
           if (activeReplyableNoteId) startUserNoteReply(activeReplyableNoteId);
@@ -1397,9 +1401,16 @@ export function App({
     findAppCommandById(appCommands, "hunk.review.editActiveNote")?.keyLabels[0] ?? "";
   const replyNoteKeyLabel =
     findAppCommandById(appCommands, "hunk.review.replyToActiveNote")?.keyLabels[0] ?? "";
+  const handledNoteKeyLabel =
+    findAppCommandById(appCommands, "hunk.review.toggleActiveNoteHandled")?.keyLabels[0] ?? "";
   const noteActionKeyLabels = useMemo(
-    () => ({ delete: deleteNoteKeyLabel, edit: editNoteKeyLabel, reply: replyNoteKeyLabel }),
-    [deleteNoteKeyLabel, editNoteKeyLabel, replyNoteKeyLabel],
+    () => ({
+      delete: deleteNoteKeyLabel,
+      edit: editNoteKeyLabel,
+      reply: replyNoteKeyLabel,
+      handled: handledNoteKeyLabel,
+    }),
+    [deleteNoteKeyLabel, editNoteKeyLabel, handledNoteKeyLabel, replyNoteKeyLabel],
   );
   useExtensionRuntimeBindings({
     commands: appCommands,
@@ -1737,6 +1748,7 @@ export function App({
             onActiveAddNoteAffordanceChange={onActiveAddNoteAffordanceChange}
             onActivateNote={review.activateNote}
             onEditUserNote={startUserNoteEdit}
+            onToggleNoteHandled={review.toggleNoteHandled}
             onReplyToNote={startUserNoteReply}
             onRemoveLiveNote={review.removeLiveComment}
             onRemoveUserNote={review.removeUserNote}

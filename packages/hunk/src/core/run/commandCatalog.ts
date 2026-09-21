@@ -30,6 +30,7 @@ import type { ReviewSelectionScope } from "../review/navigation";
 import {
   selectActiveEditableReviewNoteId,
   selectActiveRemovableReviewNote,
+  selectActiveStoredReviewNote,
   selectActiveReplyableReviewNoteId,
   selectNormalizedSelection,
   selectReviewGapForSelection,
@@ -64,6 +65,8 @@ export type AppCommandReviewEffect =
   | { kind: "notes/start-reply-active" }
   /** Delete or dismiss the active stored leaf note. */
   | { kind: "notes/remove-active" }
+  /** junk: flip the `handled` tag on the active stored note. */
+  | { kind: "notes/toggle-handled-active" }
   /** Flip the gap the shared policy says this selection reaches. */
   | { kind: "expansion/toggle-selected-gap" };
 
@@ -224,6 +227,16 @@ const BUILTIN_COMMANDS = [
     defaultKeys: ["D"],
     locus: "semantic",
     review: { kind: "notes/remove-active" },
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
+    id: "hunk.review.toggleActiveNoteHandled",
+    title: "Flag active review note handled",
+    category: "review",
+    defaultKeys: ["X"],
+    locus: "semantic",
+    review: { kind: "notes/toggle-handled-active" },
     publicToExtensions: true,
     closesMenu: true,
   },
@@ -726,6 +739,15 @@ export function lowerAppCommandToReviewIntent(
       return target.source === "user"
         ? { type: "notes/remove-user", noteId: target.noteId }
         : { type: "notes/remove-live", noteId: target.noteId };
+    }
+    case "notes/toggle-handled-active": {
+      const entry = selectActiveStoredReviewNote(state);
+      if (!entry) return undefined;
+      return {
+        type: "notes/set-handled",
+        noteId: entry.note.id,
+        handled: !entry.note.tags?.includes("handled"),
+      };
     }
     case "expansion/toggle-selected-gap": {
       const target = selectReviewGapForSelection(state);

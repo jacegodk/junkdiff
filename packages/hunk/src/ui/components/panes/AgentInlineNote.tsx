@@ -27,6 +27,8 @@ export interface AgentInlineNoteActions {
   onEdit?: () => void;
   onReply?: () => void;
   onDelete?: () => void;
+  /** junk: set or clear the note's `handled` tag. */
+  onToggleHandled?: () => void;
 }
 
 interface BorderActionItem {
@@ -206,7 +208,7 @@ export function AgentInlineNote({
 }: {
   annotation: AgentAnnotation;
   active?: boolean;
-  actionKeyLabels?: { delete: string; edit: string; reply: string };
+  actionKeyLabels?: { delete: string; edit: string; reply: string; handled?: string };
   anchorSide?: "old" | "new";
   file?: DiffFile;
   layout: Exclude<LayoutMode, "auto">;
@@ -445,6 +447,14 @@ export function AgentInlineNote({
               keyLabel: actionKeyLabels?.delete ?? "",
               label: "delete",
               onMouseUp: actions.onDelete,
+            }
+          : null,
+        actions.onToggleHandled
+          ? {
+              id: "handled",
+              keyLabel: actionKeyLabels?.handled ?? "",
+              label: annotation.tags?.includes("handled") ? "unhandled" : "handled",
+              onMouseUp: actions.onToggleHandled,
             }
           : null,
       ].filter((item): item is BorderActionItem => item !== null)

@@ -434,6 +434,10 @@ const ACTION_PARSERS: Record<ReviewIntentType, (record: Record<string, unknown>)
     utf8ByteLength(record.filter) <= MAX_HUNK_REVIEW_FILTER_BYTES,
   "notes/set-visibility": (record) =>
     hasExactKeys(record, ["type", "visible"]) && typeof record.visible === "boolean",
+  "notes/set-handled": (record) =>
+    hasExactKeys(record, ["type", "noteId", "handled"]) &&
+    isIdentifier(record.noteId) &&
+    typeof record.handled === "boolean",
   "notes/start-draft": (record) =>
     hasExactKeys(
       record,

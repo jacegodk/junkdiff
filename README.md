@@ -1,6 +1,6 @@
 # junkdiff
 
-Personal fork of [hunk](https://github.com/modem-dev/hunk) by Jens Andersen. The binary is `junk`; it shares hunk's config, state and extensions (`~/.config/hunk`, `~/.local/state/hunk`). Branch `main` mirrors upstream, branch `junk` carries the patches. junk ships [hunk-viewed](https://github.com/jacegodk/hunk-viewed) built in (viewed marks, folding, full-file view, expand-all, search, keys `V U J K F A o f3`), keeps review notes across sessions (a note flagged `handled` in its notes file shows as handled, `H` hides and shows handled notes, or they are deleted on open with `delete_handled_notes = true` in config.toml), and asks which worktree and base to review when started without a target. Upstream README follows.
+Personal fork of [hunk](https://github.com/modem-dev/hunk) by Jens Andersen. The binary is `junk`; it shares hunk's config, state and extensions (`~/.config/hunk`, `~/.local/state/hunk`). Branch `main` mirrors upstream, branch `junk` carries the patches. junk ships [hunk-viewed](https://github.com/jacegodk/hunk-viewed) built in (viewed marks, folding, full-file view, expand-all, search, keys `V U J K F A o f3`), keeps review notes across sessions (`X` flags the active note handled, also for agent comments; a note flagged `handled` in its notes file shows as handled, `H` hides and shows handled notes, or they are deleted on open with `delete_handled_notes = true` in config.toml), and asks which worktree and base to review when started without a target. Upstream README follows.
 
 ---
 

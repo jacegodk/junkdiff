@@ -106,6 +106,8 @@ export type ReviewIntent =
   | { type: "filter/set"; filter: string }
   /** Set whether agent notes are shown; reviewer-authored notes stay visible either way. */
   | { type: "notes/set-visibility"; visible: boolean }
+  /** junk: set or clear the `handled` tag on one stored note, user or live. */
+  | { type: "notes/set-handled"; noteId: string; handled: boolean }
   /** Open a draft at one hunk, defaulting to the line a whole-hunk note hangs from. */
   | {
       type: "notes/start-draft";
@@ -150,6 +152,7 @@ export const REVIEW_INTENT_TYPES = [
   "selection/anchor",
   "filter/set",
   "notes/set-visibility",
+  "notes/set-handled",
   "notes/start-draft",
   "notes/start-edit",
   "notes/start-reply",
@@ -254,6 +257,7 @@ export interface ReviewIntentOutcomeByType {
   "selection/anchor": undefined;
   "filter/set": undefined;
   "notes/set-visibility": undefined;
+  "notes/set-handled": undefined;
   "notes/start-draft": ReviewDraftStartedOutcome;
   "notes/start-edit": ReviewDraftStartedOutcome;
   "notes/start-reply": ReviewDraftStartedOutcome;
@@ -902,6 +906,10 @@ export function planReviewIntent(
       return { actions: [{ type: "filter/set", filter: intent.filter }] };
     case "notes/set-visibility":
       return { actions: [{ type: "notes/set-visibility", visible: intent.visible }] };
+    case "notes/set-handled":
+      return {
+        actions: [{ type: "notes/set-handled", noteId: intent.noteId, handled: intent.handled }],
+      };
     case "notes/start-draft":
       return planDraftStart(state, intent, facts);
     case "notes/start-edit":

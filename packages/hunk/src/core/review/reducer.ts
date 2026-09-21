@@ -207,6 +207,38 @@ export function reduceReviewState(state: ReviewState, action: ReviewAction): Rev
         activeNoteId: activeHidden ? null : state.activeNoteId,
       };
     }
+    case "notes/set-handled": {
+      const retag = (entry: ReviewStoredNote) => {
+        if (entry.note.id !== action.noteId) return entry;
+        const tags = entry.note.tags ?? [];
+        if (tags.includes("handled") === action.handled) return entry;
+        const nextTags = action.handled
+          ? [...tags, "handled"]
+          : tags.filter((tag) => tag !== "handled");
+        return {
+          ...entry,
+          note: {
+            ...entry.note,
+            ...(nextTags.length > 0 ? { tags: nextTags } : { tags: undefined }),
+          },
+        };
+      };
+      const liveNotes = state.liveNotes.map(retag);
+      const userNotes = state.userNotes.map(retag);
+      const changed =
+        liveNotes.some((entry, index) => entry !== state.liveNotes[index]) ||
+        userNotes.some((entry, index) => entry !== state.userNotes[index]);
+      if (!changed) return state;
+      // A note that just became handled while handled notes are hidden loses focus with the card.
+      const activeHidden =
+        action.handled && !state.showHandledNotes && state.activeNoteId === action.noteId;
+      return {
+        ...state,
+        liveNotes,
+        userNotes,
+        activeNoteId: activeHidden ? null : state.activeNoteId,
+      };
+    }
     case "notes/add-live":
       return action.notes.length === 0
         ? state
