@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   createPtyHarness,
+  REVIEW_MENU_BAR,
   dragMouse,
   lineIndexOf,
   measureKeyScroll,
@@ -33,7 +34,7 @@ describe("PTY current line", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.waitIdle({ timeout: 300 });
 
       expect(await measureKeyScroll(session, "j", 12)).toBe(0);
@@ -229,7 +230,7 @@ describe("PTY current line", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.waitIdle({ timeout: 300 });
 
       let scrolled = 0;
@@ -266,7 +267,7 @@ describe("PTY current line", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.press("z");
       await harness.waitForSnapshot(session, (text) => text.includes("hiddenLine01"), 5_000);
       // The revealed rows reach navigation one commit after they reach the screen.
@@ -292,7 +293,7 @@ describe("PTY current line", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.waitIdle({ timeout: 300 });
       await session.press("c");
       const beforeExpand = await session.waitForText(/Draft note/, { timeout: 5_000 });
@@ -334,7 +335,7 @@ describe("PTY current line", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.waitIdle({ timeout: 300 });
 
       await session.press("space");
@@ -356,7 +357,7 @@ describe("PTY current line", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.waitIdle({ timeout: 300 });
 
       await session.press("space");
@@ -384,7 +385,7 @@ describe("PTY current line", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.waitIdle({ timeout: 300 });
 
       await session.press("c");

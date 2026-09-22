@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createPtyHarness, lineIndexOf, sleep } from "./harness";
+import { createPtyHarness, REVIEW_MENU_BAR, lineIndexOf, sleep } from "./harness";
 
 const harness = createPtyHarness();
 
@@ -46,7 +46,7 @@ describe("PTY key routing", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.press("f10");
       await session.waitForText(/Reload/, { timeout: 5_000 });
       await session.press("escape");
@@ -70,7 +70,7 @@ describe("PTY key routing", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
 
       // Open the help overlay first, then focus the filter and type into it
       // behind the overlay.
@@ -112,7 +112,7 @@ describe("PTY key routing", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
       expect(initial).toMatch(/▌.*▌/);
@@ -166,7 +166,7 @@ describe("PTY key routing", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
 
       await session.press("c");
       await session.waitForText(/Draft note/, { timeout: 5_000 });
@@ -275,7 +275,7 @@ describe("PTY key routing", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.waitIdle({ timeout: 300 });
 
       await session.press("f10");
@@ -306,7 +306,7 @@ describe("PTY key routing", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.waitIdle({ timeout: 300 });
 
       await session.press("f10");

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { createPtyHarness, dragMouse, measureKeyScroll, measureMouseWheelScroll } from "./harness";
+import {
+  createPtyHarness,
+  REVIEW_MENU_BAR,
+  dragMouse,
+  measureKeyScroll,
+  measureMouseWheelScroll,
+} from "./harness";
 
 const harness = createPtyHarness();
 
@@ -21,7 +27,7 @@ describe("PTY scrolling", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -102,7 +108,7 @@ describe("PTY scrolling", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
       await session.waitIdle({ timeout: 300 });
@@ -132,7 +138,7 @@ describe("PTY scrolling", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -191,7 +197,7 @@ describe("PTY scrolling", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -266,7 +272,7 @@ describe("PTY scrolling", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -309,7 +315,7 @@ describe("PTY scrolling", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -353,7 +359,7 @@ describe("PTY scrolling", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -384,7 +390,7 @@ describe("PTY scrolling", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
       const initialHeaderCount = harness.countMatches(initial, /aaa-collapsed\.ts/g);

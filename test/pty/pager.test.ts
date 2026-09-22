@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import type { Session } from "tuistory";
-import { createPtyHarness } from "./harness";
+import { createPtyHarness, REVIEW_MENU_BAR } from "./harness";
 
 const harness = createPtyHarness();
 
@@ -153,7 +153,7 @@ describe("PTY pager", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
       expect(initial).toContain("alpha.ts");

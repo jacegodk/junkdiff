@@ -3,7 +3,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { availableThemes } from "../../packages/hunk/src/ui/themes";
-import { createPtyHarness, lineIndexOf, rowCellBackgrounds, sleep } from "./harness";
+import {
+  createPtyHarness,
+  REVIEW_MENU_BAR,
+  lineIndexOf,
+  rowCellBackgrounds,
+  sleep,
+} from "./harness";
 
 const harness = createPtyHarness();
 
@@ -77,8 +83,9 @@ describe("PTY chrome", () => {
       await session.click(/Controls help/);
       const helpDialog = await session.waitForText(/Navigation/, { timeout: 5_000 });
 
-      // The key column is rendered from the commands' resolved chords.
-      expect(helpDialog).toContain("g / Home");
+      // The key column is rendered from the commands' resolved chords. Asserted on a row the
+      // 20-row dialog shows without scrolling.
+      expect(helpDialog).toContain("d / u");
     } finally {
       session.close();
     }
@@ -96,7 +103,7 @@ describe("PTY chrome", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.press("t");
       await session.waitForText(/Theme selector/, { timeout: 5_000 });
 
@@ -174,7 +181,7 @@ describe("PTY chrome", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -219,7 +226,7 @@ describe("PTY chrome", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -262,7 +269,7 @@ describe("PTY chrome", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -292,7 +299,7 @@ describe("PTY chrome", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -333,7 +340,7 @@ describe("PTY chrome", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -381,7 +388,7 @@ describe("PTY chrome", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 

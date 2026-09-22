@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { createPtyHarness } from "./harness";
+import { createPtyHarness, REVIEW_MENU_BAR } from "./harness";
 
 const harness = createPtyHarness();
 
@@ -21,7 +21,7 @@ describe("filter escape clearing (PTY)", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
 
       // Open filter, type a no-match query.
       await session.press("tab");

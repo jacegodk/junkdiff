@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
-import { createPtyHarness } from "./harness";
+import { createPtyHarness, REVIEW_MENU_BAR } from "./harness";
 
 const harness = createPtyHarness();
 
@@ -21,7 +21,7 @@ describe("PTY navigation", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
       expect(initial).not.toContain("Maximum update depth exceeded");
@@ -62,7 +62,7 @@ describe("PTY navigation", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -93,7 +93,7 @@ describe("PTY navigation", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -140,7 +140,7 @@ describe("PTY navigation", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -224,7 +224,7 @@ describe("PTY navigation", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -261,7 +261,7 @@ describe("PTY navigation", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 

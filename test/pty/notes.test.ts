@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   createPtyHarness,
+  REVIEW_MENU_BAR,
   dragMouse,
   lineIndexOf,
   moveMouse,
@@ -40,7 +41,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -83,7 +84,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.press("a");
       const withNotes = await session.waitForText(/GAP NOTE/, { timeout: 5_000 });
 
@@ -116,7 +117,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await session.press("a");
       const withMarkup = await session.waitForText(/STML ACTIVE/, { timeout: 5_000 });
 
@@ -135,7 +136,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
 
       await session.waitIdle({ timeout: 500 });
       for (let index = 0; index < 8; index += 1) {
@@ -199,7 +200,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       // Paging is a render, not a keypress: snapshotting before it settles reads
       // the pre-scroll frame. The same page-down assertion in cursor-line.test.ts
       // brackets the key with the same waits.
@@ -230,7 +231,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -291,7 +292,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
 
       await session.press("c");
       await session.waitForText(/Draft note/, { timeout: 5_000 });
@@ -399,7 +400,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       for (const body of ["First note-only stop.", "Second note-only stop."]) {
         await session.press("c");
         await session.waitForText(/Draft note/, { timeout: 5_000 });
@@ -447,7 +448,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
 
       await session.press("c");
       await session.waitForText(/Draft note/, { timeout: 5_000 });
@@ -627,7 +628,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -663,7 +664,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
 
       await session.press("c");
       await session.waitForText(/Draft note/, { timeout: 5_000 });
@@ -697,7 +698,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
 
       await session.press("c");
       await session.waitForText(/Draft note/, { timeout: 5_000 });
@@ -730,7 +731,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -777,7 +778,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -809,7 +810,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 
@@ -1068,7 +1069,7 @@ describe("PTY notes", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
 

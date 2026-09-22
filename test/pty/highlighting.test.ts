@@ -2,7 +2,7 @@ import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createPtyHarness } from "./harness";
+import { createPtyHarness, REVIEW_MENU_BAR } from "./harness";
 
 const harness = createPtyHarness();
 
@@ -66,7 +66,7 @@ describe("PTY syntax highlighting", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       const initial = await session.waitForText(/export const workerLine\d+ = \d+;/, {
         timeout: 15_000,
       });

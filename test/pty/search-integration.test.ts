@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Session } from "tuistory";
 import { resolveTheme } from "../../packages/hunk/src/ui/themes";
-import { createPtyHarness, lineIndexOf } from "./harness";
+import { createPtyHarness, REVIEW_MENU_BAR, lineIndexOf } from "./harness";
 
 /**
  * The bundled `/` content search in a real terminal: the prompt opens on the
@@ -50,7 +50,7 @@ describe("PTY content search", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
       // The second match sits below the fold, so a landing there has to scroll.
@@ -149,7 +149,7 @@ describe("PTY content search", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await harness.ensureKeyboardIsLive(session);
       await session.type("/");
       await harness.waitForSnapshot(session, (text) => text.includes("/ search diff"), 5_000);
@@ -186,7 +186,7 @@ describe("PTY content search", () => {
     });
 
     try {
-      await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, { timeout: 15_000 });
+      await session.waitForText(REVIEW_MENU_BAR, { timeout: 15_000 });
       await harness.ensureKeyboardIsLive(session);
 
       await session.press("n");
@@ -258,7 +258,7 @@ describe("PTY content search", () => {
     });
 
     try {
-      const initial = await session.waitForText(/View\s+Navigate\s+Agent\s+Help/, {
+      const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
       // An exclusive user binding is not a conflict: no warning names the bundled command.
