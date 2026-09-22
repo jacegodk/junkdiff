@@ -229,7 +229,9 @@ describe("PTY file views", () => {
       args: ["diff", "--mode", "unified", "--files", pair.before, pair.after],
       cwd: pair.directory,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -254,7 +256,9 @@ describe("PTY file views", () => {
       args: ["diff", "--extension", syntaxFixture.extension, "--mode", "unified"],
       cwd: repo.dir,
       cols: 120,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -378,7 +382,9 @@ describe("PTY file views", () => {
       ],
       cwd: pair.directory,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -454,7 +460,9 @@ describe("PTY file views", () => {
         ],
         cwd: JSX_FILE_VIEW_GALLERY,
         cols: 140,
-        rows: 24,
+        // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+        // hides the file-presentation entries these tests click.
+        rows: 32,
       });
 
       try {
@@ -485,7 +493,9 @@ describe("PTY file views", () => {
     const session = await harness.launchShellCommand({
       command: `${JSON.stringify(process.execPath)} run ${JSON.stringify(JSX_MIXED_REVIEW_LAUNCHER)}`,
       cols: 220,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -549,7 +559,9 @@ describe("PTY file views", () => {
       ],
       cwd: pair.dir,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -602,7 +614,9 @@ describe("PTY file views", () => {
       ],
       cwd: pair.dir,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -658,7 +672,9 @@ describe("PTY file views", () => {
       args: ["diff", "--extension", INLINE_EDIT_EXTENSION, "--mode", "unified"],
       cwd: repo.dir,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -757,7 +773,9 @@ describe("PTY file views", () => {
       ],
       cwd: repo.dir,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -794,7 +812,9 @@ describe("PTY file views", () => {
       args: ["diff", "--extension", INLINE_EDIT_EXTENSION, "--mode", "unified"],
       cwd: repo.dir,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -832,7 +852,9 @@ describe("PTY file views", () => {
       ],
       cwd: pair.directory,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {
@@ -869,7 +891,9 @@ describe("PTY file views", () => {
       ],
       cwd: pair.directory,
       cols: 140,
-      rows: 24,
+      // junk: the View menu carries one more notes toggle than hunk's, so a 24-row terminal
+      // hides the file-presentation entries these tests click.
+      rows: 32,
     });
 
     try {

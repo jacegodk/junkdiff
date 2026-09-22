@@ -716,7 +716,8 @@ describe("PTY extensions", () => {
       ],
       cwd: fixture.dir,
       cols: 240,
-      rows: 24,
+      // junk: the View menu is one row longer than hunk's, so this needs room to show it all.
+      rows: 32,
       env: { XDG_CONFIG_HOME: configHome },
     });
 
