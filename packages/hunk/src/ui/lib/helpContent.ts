@@ -1,4 +1,4 @@
-import { isCommandEnabled, type AppCommand } from "./appCommands";
+import type { AppCommand } from "./appCommands";
 
 /**
  * The curated content of the controls help dialog.
@@ -46,7 +46,7 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
       },
       {
         commandIds: ["hunk.review.stepUpInHunk", "hunk.review.stepDownInHunk"],
-        description: "move inside the hunk",
+        description: "move through hunk lines",
       },
       { commandIds: ["hunk.review.pageDown"], description: "page down" },
       { commandIds: ["hunk.review.pageUp"], description: "page up" },
@@ -139,12 +139,13 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
           "hunk.review.deleteActiveNote",
           "hunk.review.toggleActiveNoteHandled",
         ],
-        description: "edit / reply / delete / flag handled (active note)",
+        description: "on the active note",
       },
       { commandIds: ["hunk.app.toggleFocusArea"], description: "toggle files/filter focus" },
       { keys: "F10", description: "open menus" },
       { commandIds: ["hunk.app.refresh"], description: "reload the review" },
       { commandIds: ["hunk.app.openReviewPicker"], description: "pick worktree / base" },
+      { commandIds: ["hunk.app.toggleHelp"], description: "show this help" },
       { commandIds: ["hunk.app.quit"], description: "quit" },
     ],
   },
@@ -176,7 +177,9 @@ function helpEntryKeys(commands: readonly AppCommand[], spec: HelpEntrySpec): st
 
   const labels = spec.commandIds.flatMap((id) => {
     const command = commands.find((candidate) => candidate.id === id);
-    if (!command || !isCommandEnabled(command)) {
+    // junk: a key reference lists what the keyboard does, not what is available this second.
+    // Note actions, copy and the like are bound whether or not the moment enables them.
+    if (!command || command.keyLabels.length === 0) {
       return [];
     }
 
@@ -196,7 +199,6 @@ function extensionHelpSections(commands: readonly AppCommand[]): HelpSection[] {
   for (const command of commands) {
     const owner = command.id.slice(0, command.id.indexOf("."));
     if (owner === "" || owner === "hunk" || command.keyLabels.length === 0) continue;
-    if (!isCommandEnabled(command)) continue;
     const rows = byExtension.get(owner) ?? [];
     rows.push({ keys: command.keyLabels.join(" / "), description: command.title });
     byExtension.set(owner, rows);

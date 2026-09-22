@@ -323,7 +323,7 @@ const BUILTIN_COMMANDS = [
   },
   {
     id: "hunk.review.stepDownInHunk",
-    title: "Move down one line inside the hunk",
+    title: "Move down one hunk line, skipping unchanged context",
     category: "review",
     defaultKeys: ["j"],
     locus: "client-local",
@@ -332,7 +332,7 @@ const BUILTIN_COMMANDS = [
   },
   {
     id: "hunk.review.stepUpInHunk",
-    title: "Move up one line inside the hunk",
+    title: "Move up one hunk line, skipping unchanged context",
     category: "review",
     defaultKeys: ["k"],
     locus: "client-local",

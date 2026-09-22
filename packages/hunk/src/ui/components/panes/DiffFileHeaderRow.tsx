@@ -31,7 +31,9 @@ export function DiffFileHeaderRow({
         justifyContent: "space-between",
         paddingLeft: 1,
         paddingRight: 1,
-        backgroundColor: theme.panel,
+        // junk: one step brighter than the pane, so the band that starts a file reads as a
+        // divider rather than blending into the code behind it.
+        backgroundColor: theme.panelAlt,
       }}
       onMouseUp={onSelect}
     >

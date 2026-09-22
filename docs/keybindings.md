@@ -148,9 +148,9 @@ Review and shared commands:
 | `hunk.review.startNote`                        | Add a review note                                     | `c`                          |
 | `hunk.review.startVisualSelection`             | Start visual line selection                           | `v`                          |
 | `hunk.review.stepDown`                         | Move down one line or note                            | `j`                          |
-| `hunk.review.stepDownInHunk`                   | Move down one line inside the hunk                    | `j`                          |
+| `hunk.review.stepDownInHunk`                   | Move down one hunk line, skipping unchanged context   | `j`                          |
 | `hunk.review.stepUp`                           | Move up one line or note                              | `k`                          |
-| `hunk.review.stepUpInHunk`                     | Move up one line inside the hunk                      | `k`                          |
+| `hunk.review.stepUpInHunk`                     | Move up one hunk line, skipping unchanged context     | `k`                          |
 | `hunk.review.toggleActiveNoteHandled`          | Flag active review note handled                       | `h`                          |
 | `hunk.review.toggleHunkGap`                    | Expand or collapse the selected context               | `z`                          |
 | `hunk.search.find`                             | Search diff content                                   | `/`                          |

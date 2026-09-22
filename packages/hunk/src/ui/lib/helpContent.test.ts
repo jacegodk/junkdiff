@@ -51,7 +51,7 @@ describe("buildHelpSections", () => {
     expect(keysFor(sections, "previous / next hunk")).toBe("[ / ]");
     expect(keysFor(sections, "half page down / up")).toBe("d / u");
     expect(keysFor(sections, "move through lines and notes")).toBe("Up / Down");
-    expect(keysFor(sections, "move inside the hunk")).toBe("k / j");
+    expect(keysFor(sections, "move through hunk lines")).toBe("k / j");
     expect(keysFor(sections, "toggle / more / less unchanged lines")).toBe("z / x / X");
     expect(keysFor(sections, "unified / split / auto")).toBe("1 / 2 / 0");
     expect(keysFor(sections, "lines / wrap / metadata / menu")).toBe("l / w / m / M");
@@ -146,13 +146,15 @@ describe("buildHelpSections", () => {
     expect(keysFor(sections, "create review note")).toBeUndefined();
   });
 
-  test("a disabled command is documented only while it can run", () => {
+  test("junk: a command keeps its row while it is bound, enabled here and now or not", () => {
     const enabled = builtinCommandMatchProbes();
     const disabled: AppCommand[] = enabled.map((command) =>
       command.id === "hunk.app.refresh" ? { ...command, isEnabled: () => false } : command,
     );
 
+    // The dialog is a key reference: a note action or a refresh keeps its key on the list even
+    // when this moment cannot run it. Only an unbound command drops out.
     expect(keysFor(buildHelpSections(enabled), "reload the review")).toBe("r");
-    expect(keysFor(buildHelpSections(disabled), "reload the review")).toBeUndefined();
+    expect(keysFor(buildHelpSections(disabled), "reload the review")).toBe("r");
   });
 });

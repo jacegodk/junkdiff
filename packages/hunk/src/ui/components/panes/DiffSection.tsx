@@ -148,7 +148,8 @@ function DiffSectionComponent({
               backgroundColor: theme.panel,
             }}
           >
-            <text fg={theme.border}>{fitText("─".repeat(separatorWidth), separatorWidth)}</text>
+            {/* junk: a heavy rule, so the break between two files is visible at a glance. */}
+            <text fg={theme.muted}>{fitText("━".repeat(separatorWidth), separatorWidth)}</text>
           </box>
         </box>
       ) : null}
