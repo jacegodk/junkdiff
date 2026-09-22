@@ -13,6 +13,7 @@ import type { VisibleAgentNote } from "../../lib/agentAnnotations";
 import type { ValidatedLineHighlight } from "../../highlights/validate";
 import type { CopySelectedRowRange } from "../../lib/diffSpatial";
 import { diffSectionId } from "../../lib/ids";
+import { dimRailColor } from "../../diff/rowStyle";
 import { fitText } from "../../lib/text";
 import type { AppTheme } from "../../themes";
 import { DiffFileHeaderRow } from "./DiffFileHeaderRow";
@@ -148,8 +149,10 @@ function DiffSectionComponent({
               backgroundColor: theme.panel,
             }}
           >
-            {/* junk: a heavy rule, so the break between two files is visible at a glance. */}
-            <text fg={theme.muted}>{fitText("━".repeat(separatorWidth), separatorWidth)}</text>
+            {/* junk: a solid bar, so the break between two files is visible at a glance. */}
+            <text fg={dimRailColor(theme.muted, theme)}>
+              {fitText("█".repeat(separatorWidth), separatorWidth)}
+            </text>
           </box>
         </box>
       ) : null}
