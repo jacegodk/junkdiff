@@ -208,6 +208,20 @@ export function reduceReviewState(state: ReviewState, action: ReviewAction): Rev
         activeNoteId: activeHidden ? null : state.activeNoteId,
       };
     }
+    case "notes/set-user-visibility": {
+      if (action.visible === state.showUserNotes) {
+        return state;
+      }
+      const activeNote = [...state.liveNotes, ...state.userNotes].find(
+        (entry) => entry.note.id === state.activeNoteId,
+      );
+      const activeHidden = !action.visible && activeNote?.note.source === "user";
+      return {
+        ...state,
+        showUserNotes: action.visible,
+        activeNoteId: activeHidden ? null : state.activeNoteId,
+      };
+    }
     case "notes/set-handled": {
       const retag = (entry: ReviewStoredNote) => {
         if (entry.note.id !== action.noteId) return entry;

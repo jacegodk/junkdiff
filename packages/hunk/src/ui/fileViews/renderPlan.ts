@@ -73,6 +73,21 @@ function rowLineStableKey(row: ExtensionFileViewRow, hunkIndex: number) {
     : lineStableKey(hunkIndex, sourceRange.side, sourceRange.range[0]);
 }
 
+/**
+ * junk: the row of a presentation that folds the whole file into one, or -1 for any other shape.
+ *
+ * Such a row stands for every line of the file, so it hosts a note whose anchor the patch no
+ * longer contains — a note written against another base, or on a line that has since moved out
+ * of every hunk. Without this the file could never fold again, because placement is all-or-raw.
+ */
+function wholeFileRowIndex(layout: ExtensionFileViewLayout): number {
+  const foldsWholeFile =
+    layout.rows.length === 1 &&
+    layout.hunkRows.length > 0 &&
+    layout.hunkRows.every((bounds) => bounds.startRow === 0 && bounds.endRow === 0);
+  return foldsWholeFile ? 0 : -1;
+}
+
 /** Find the unique validated presentation row containing one note's preferred source anchor. */
 function boundRowIndex(layout: ExtensionFileViewLayout, annotation: AgentAnnotation) {
   const anchor = annotationAnchor(annotation);
@@ -107,7 +122,10 @@ export function buildFileViewRenderPlan(
 
   for (const note of visibleAgentNotes) {
     const anchor = annotationAnchor(note.annotation);
-    const rowIndex = boundRowIndex(layout, note.annotation);
+    const rowIndex =
+      boundRowIndex(layout, note.annotation) >= 0
+        ? boundRowIndex(layout, note.annotation)
+        : wholeFileRowIndex(layout);
     const hunkIndex = rowIndex < 0 ? -1 : noteHunkIndex(hunkOwnerByRow[rowIndex]!, note);
     if (!anchor || rowIndex < 0 || hunkIndex < 0) {
       unresolvedNoteIds.push(note.id);

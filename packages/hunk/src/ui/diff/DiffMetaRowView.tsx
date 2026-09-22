@@ -5,6 +5,7 @@ import type { AppTheme } from "../themes";
 import { CODE_ROW_ADD_NOTE_BADGE_TEXT } from "./codeRowAffordance";
 import type { PlannedDiffMetaReviewRow } from "./reviewRenderPlan";
 import { fitText } from "./plannedRowText";
+import { measureTextWidth } from "../lib/text";
 import { diffRailMarker, dimRailColor, neutralRailColor } from "./rowStyle";
 import { markNestedRowMouseAction } from "./rowMouseActions";
 
@@ -55,7 +56,8 @@ export function DiffMetaRowView({
   }
 
   // junk: a collapsed gap can be opened from either end without opening all of it. The arrow
-  // pointing down extends the code above, the one pointing up extends the code below.
+  // pointing down extends the code above, the one pointing up extends the code below. They sit
+  // in the middle of the row, where the eye already is when reading the gap's label.
   const gapKey = row.type === "collapsed" ? reviewGapId(row.position, row.hunkIndex) : null;
   const gapArrows =
     gapKey && onRevealGap
@@ -75,7 +77,6 @@ export function DiffMetaRowView({
         ]
       : [];
   const badges = [
-    ...gapArrows,
     showAddNoteBadge
       ? {
           key: "user-note",
@@ -87,16 +88,23 @@ export function DiffMetaRowView({
     Boolean(badge),
   );
   const badgeWidth = badges.reduce((total, badge) => total + badge.text.length + 1, 0);
+  const arrowsWidth = gapArrows.reduce((total, arrow) => total + arrow.text.length + 1, 0);
   const collapsedExpandable = row.type === "collapsed" && Boolean(onToggleGap);
   const labelText =
     row.type === "collapsed" ? collapsedRowLabel(row.text, collapsedExpandable) : row.text;
-  const label = fitText(labelText, Math.max(0, width - 1 - badgeWidth));
+  const label = fitText(labelText, Math.max(0, width - 1 - badgeWidth - arrowsWidth));
+  // The label keeps its own width; the arrows start at the row's midpoint when that leaves
+  // room for them.
+  const labelBoxWidth = Math.max(
+    1 + measureTextWidth(label),
+    Math.min(Math.max(0, width - badgeWidth - arrowsWidth), Math.floor((width - arrowsWidth) / 2)),
+  );
   const handleCollapsedClick =
     row.type === "collapsed" && onToggleGap
       ? () => onToggleGap(reviewGapId(row.position, row.hunkIndex))
       : undefined;
 
-  if (badges.length === 0) {
+  if (badges.length === 0 && gapArrows.length === 0) {
     return (
       <box
         id={anchorId}
@@ -139,10 +147,7 @@ export function DiffMetaRowView({
       onMouseMove={() => onHoverRow?.(row.key)}
       onMouseOver={() => onHoverRow?.(row.key)}
     >
-      <box
-        style={{ width: Math.max(0, width - badgeWidth), height: 1 }}
-        onMouseUp={handleCollapsedClick}
-      >
+      <box style={{ width: labelBoxWidth, height: 1 }} onMouseUp={handleCollapsedClick}>
         <text>
           <span
             fg={selected ? neutralRailColor(theme) : dimRailColor(neutralRailColor(theme), theme)}
@@ -158,6 +163,25 @@ export function DiffMetaRowView({
           </span>
         </text>
       </box>
+      {gapArrows.map((arrow) => (
+        <box
+          key={arrow.key}
+          style={{ width: arrow.text.length + 1, height: 1 }}
+          onMouseUp={(event) => {
+            markNestedRowMouseAction(event);
+            arrow.onClick();
+          }}
+        >
+          <text fg={theme.badgeNeutral} bg={theme.panelAlt}>{` ${arrow.text}`}</text>
+        </box>
+      ))}
+      <box
+        style={{
+          width: Math.max(0, width - labelBoxWidth - arrowsWidth - badgeWidth),
+          height: 1,
+        }}
+        onMouseUp={handleCollapsedClick}
+      />
       {badges.map((badge) => (
         <box
           key={badge.key}
@@ -167,10 +191,7 @@ export function DiffMetaRowView({
             badge.onClick();
           }}
         >
-          <text
-            fg={badge.quiet ? theme.badgeNeutral : theme.noteTitleText}
-            bg={badge.quiet ? theme.panelAlt : theme.noteTitleBackground}
-          >{` ${badge.text}`}</text>
+          <text fg={theme.noteTitleText} bg={theme.noteTitleBackground}>{` ${badge.text}`}</text>
         </box>
       ))}
     </box>

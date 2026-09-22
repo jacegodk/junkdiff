@@ -234,6 +234,10 @@ export interface TerminalReview {
   showHandledNotes: boolean;
   /** junk: flip `showHandledNotes`. */
   toggleHandledNotes: () => void;
+  /** junk: whether the reviewer's own notes are drawn. */
+  showUserNotes: boolean;
+  /** junk: flip `showUserNotes`. */
+  toggleUserNotes: () => void;
   /** junk: set or clear the `handled` tag on one stored note; saved user notes persist it. */
   toggleNoteHandled: (noteId: string) => void;
   userNotesByFileId: Record<string, UserReviewNote[]>;
@@ -991,6 +995,14 @@ export function useTerminalReview({
     store.dispatch({
       type: "notes/set-handled-visibility",
       visible: !store.getSnapshot().showHandledNotes,
+    });
+  }, [store]);
+
+  /** junk: show or hide the reviewer's own notes, a session-local view toggle. */
+  const toggleUserNotes = useCallback(() => {
+    store.dispatch({
+      type: "notes/set-user-visibility",
+      visible: !store.getSnapshot().showUserNotes,
     });
   }, [store]);
 
@@ -1857,6 +1869,8 @@ export function useTerminalReview({
     reviewNoteSummaries,
     showAgentNotes: state.showAgentNotes,
     showHandledNotes: state.showHandledNotes,
+    showUserNotes: state.showUserNotes,
+    toggleUserNotes,
     toggleHandledNotes,
     toggleNoteHandled,
     userNotesByFileId,

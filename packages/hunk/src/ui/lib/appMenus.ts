@@ -43,6 +43,7 @@ export interface BuildAppMenusOptions {
   filesPaneVisible: boolean;
   showAgentNotes: boolean;
   showHandledNotes: boolean;
+  showUserNotes: boolean;
   showHelp: boolean;
   showHunkHeaders: boolean;
   showLineNumbers: boolean;
@@ -139,6 +140,7 @@ export function buildAppMenus({
   filesPaneVisible,
   showAgentNotes,
   showHandledNotes,
+  showUserNotes,
   showHelp,
   showHunkHeaders,
   showLineNumbers,
@@ -170,6 +172,7 @@ export function buildAppMenus({
       { commandId: "hunk.view.openThemeSelector", label: "Themes…" },
       SEPARATOR,
       { commandId: "hunk.view.toggleAgentNotes", label: "Agent notes", checked: showAgentNotes },
+      { commandId: "hunk.view.toggleUserNotes", label: "My notes", checked: showUserNotes },
       {
         commandId: "hunk.view.toggleHandledNotes",
         label: "Handled notes",

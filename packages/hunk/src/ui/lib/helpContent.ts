@@ -98,8 +98,12 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
         description: "sidebar / theme selector",
       },
       {
-        commandIds: ["hunk.view.toggleAgentNotes", "hunk.view.toggleHandledNotes"],
-        description: "toggle AI notes / handled notes",
+        commandIds: [
+          "hunk.view.toggleAgentNotes",
+          "hunk.view.toggleUserNotes",
+          "hunk.view.toggleHandledNotes",
+        ],
+        description: "toggle AI / my / handled notes",
       },
       {
         commandIds: [

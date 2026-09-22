@@ -1416,6 +1416,7 @@ export function App({
         },
         toggleAgentNotes,
         toggleHandledNotes: review.toggleHandledNotes,
+        toggleUserNotes: review.toggleUserNotes,
         toggleCopyDecorations,
         toggleFocusArea,
         toggleGapForSelectedHunk: review.toggleSelectedHunkGap,
@@ -1490,6 +1491,7 @@ export function App({
     filesPaneVisible,
     showAgentNotes,
     showHandledNotes: review.showHandledNotes,
+    showUserNotes: review.showUserNotes,
     showHelp,
     showHunkHeaders,
     showLineNumbers,
@@ -1771,6 +1773,7 @@ export function App({
             separatorWidth={diffSeparatorWidth}
             showAgentNotes={showAgentNotes}
             showHandledNotes={review.showHandledNotes}
+            showUserNotes={review.showUserNotes}
             showLineNumbers={showLineNumbers}
             showHunkHeaders={showHunkHeaders}
             sourceStatusByFileId={review.sourceStatusByFileId}

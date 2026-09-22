@@ -169,6 +169,7 @@ Review and shared commands:
 | `hunk.view.toggleCopyDecorations`              | Toggle copy decorations                               | _(none)_                     |
 | `hunk.view.toggleFilesPane`                    | Toggle files pane                                     | `s`                          |
 | `hunk.view.toggleHunkHeaders`                  | Toggle hunk headers                                   | `m`                          |
+| `hunk.view.toggleUserNotes`                    | Toggle my notes                                       | `T`                          |
 | `hunk.view.toggleLineNumbers`                  | Toggle line numbers                                   | `l`                          |
 | `hunk.view.toggleLineWrap`                     | Toggle line wrapping                                  | `w`                          |
 | `hunk.view.toggleMenuBar`                      | Toggle menu bar                                       | `M`                          |

@@ -152,6 +152,8 @@ export interface BuildAppCommandsOptions {
   startUserNote: () => void;
   toggleAgentNotes: () => void;
   toggleHandledNotes: () => void;
+  /** junk: show or hide the reviewer's own notes. */
+  toggleUserNotes: () => void;
   toggleCopyDecorations: () => void;
   toggleFocusArea: () => void;
   toggleGapForSelectedHunk: () => void;
@@ -287,6 +289,7 @@ function builtinCommandHandlers(
     "hunk.view.openThemeSelector": { run: () => options.openThemeSelector() },
     "hunk.view.toggleAgentNotes": { run: () => options.toggleAgentNotes() },
     "hunk.view.toggleHandledNotes": { run: () => options.toggleHandledNotes() },
+    "hunk.view.toggleUserNotes": { run: () => options.toggleUserNotes() },
     "hunk.view.toggleLineNumbers": { run: () => options.toggleLineNumbers() },
     "hunk.view.toggleLineWrap": { run: () => options.toggleLineWrap() },
     "hunk.view.toggleMenuBar": { run: () => options.toggleMenuBar() },
@@ -400,6 +403,7 @@ const NOOP_COMMAND_OPTIONS: BuildAppCommandsOptions = (() => {
     startUserNote: noop,
     toggleAgentNotes: noop,
     toggleHandledNotes: noop,
+    toggleUserNotes: noop,
     toggleCopyDecorations: noop,
     toggleFocusArea: noop,
     toggleGapForSelectedHunk: noop,

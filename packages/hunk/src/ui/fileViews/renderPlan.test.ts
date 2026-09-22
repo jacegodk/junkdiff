@@ -85,6 +85,33 @@ describe("file-view render plan", () => {
     expect((plan.rows[0] as { stableAliasKeys?: unknown }).stableAliasKeys).toBeUndefined();
   });
 
+  test("junk: a whole-file fold hosts a note whose line no hunk contains any more", () => {
+    const folded: ExtensionFileViewLayout = {
+      rows: [
+        {
+          id: "folded",
+          spans: [{ text: "✓ viewed" }],
+          sourceRanges: [{ side: "new", range: [1, 4] }],
+        },
+      ],
+      hunkRows: [{ startRow: 0, endRow: 0 }],
+    };
+    // A note restored from another base: its line sits outside every hunk, so no bound range
+    // contains it, and only the file's own hunk index says where it belongs.
+    const stale = createVisibleAgentNote(
+      [{ additionStart: 1, additionCount: 4, deletionStart: 1, deletionCount: 0 }],
+      { id: "stale", annotation: { id: "stale", summary: "stale", newRange: [779, 779] } },
+    );
+    const plan = buildFileViewRenderPlan(folded, [stale]);
+    expect(plan.unresolvedNoteIds).toEqual([]);
+    expect(plan.rows.map((row) => row.kind)).toEqual(["file-view-row", "inline-note"]);
+    expect(plan.rows[1]).toMatchObject({ anchorRowIndex: 0, hunkIndex: 0 });
+
+    // A presentation with more than one row keeps the strict rule, so a stale note there still
+    // sends the file back to the raw diff rather than landing somewhere arbitrary.
+    expect(buildFileViewRenderPlan(layout, [stale]).unresolvedNoteIds).toEqual(["stale"]);
+  });
+
   test("anchors each row on the source line the raw diff addresses", () => {
     const plan = buildFileViewRenderPlan(layout, []);
 

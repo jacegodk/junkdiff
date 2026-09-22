@@ -355,6 +355,7 @@ export function DiffPane({
   skipInitialIntermediateRender = false,
   showAgentNotes,
   showHandledNotes = true,
+  showUserNotes = true,
   showLineNumbers,
   showHunkHeaders,
   sourceStatusByFileId = EMPTY_SOURCE_STATUS_BY_FILE_ID,
@@ -446,6 +447,8 @@ export function DiffPane({
   showAgentNotes: boolean;
   /** junk: whether notes tagged `handled` are drawn; defaults to shown. */
   showHandledNotes?: boolean;
+  /** junk: whether the reviewer's own notes are drawn. */
+  showUserNotes?: boolean;
   showLineNumbers: boolean;
   showHunkHeaders: boolean;
   sourceStatusByFileId?: Record<string, FileSourceStatus>;
@@ -651,6 +654,7 @@ export function DiffPane({
             { source: reviewNoteSource(annotation), tags: annotation.tags },
             showAgentNotes,
             showHandledNotes,
+            showUserNotes,
           ),
       );
       // Every note kind resolves its anchor through the shared resolver here, once, so the
@@ -850,6 +854,7 @@ export function DiffPane({
     noteActionKeyLabels,
     showAgentNotes,
     showHandledNotes,
+    showUserNotes,
   ]);
 
   const fileViewRenderPlans = useMemo(() => {

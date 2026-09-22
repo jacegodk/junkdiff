@@ -167,6 +167,31 @@ describe("selection", () => {
 });
 
 describe("document reconciliation", () => {
+  test("junk: hiding my notes drops focus from an active user note and nothing else", () => {
+    const base = {
+      ...createTestReviewState(["alpha"], { showAgentNotes: true }),
+      activeNoteId: "user-1",
+      liveNotes: [createTestStoredNote({ id: "live-1", fileKey: "alpha" })],
+      userNotes: [createTestStoredNote({ id: "user-1", fileKey: "alpha", source: "user" })],
+    };
+    expect(base.showUserNotes).toBe(true);
+
+    const hidden = reduceReviewState(base, { type: "notes/set-user-visibility", visible: false });
+    expect(hidden.showUserNotes).toBe(false);
+    expect(hidden.activeNoteId).toBeNull();
+    expect(reduceReviewState(hidden, { type: "notes/set-user-visibility", visible: false })).toBe(
+      hidden,
+    );
+    // An active agent note is left alone by the same toggle.
+    const onLive = { ...base, activeNoteId: "live-1" };
+    expect(
+      reduceReviewState(onLive, { type: "notes/set-user-visibility", visible: false }).activeNoteId,
+    ).toBe("live-1");
+    expect(
+      reduceReviewState(hidden, { type: "notes/set-user-visibility", visible: true }).showUserNotes,
+    ).toBe(true);
+  });
+
   test("junk: a reveal records the shown part of a gap, and a zero reveal collapses it", () => {
     const base = createTestReviewState();
     const revealed = reduceReviewState(base, {

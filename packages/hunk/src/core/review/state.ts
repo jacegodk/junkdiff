@@ -48,9 +48,13 @@ export function reviewNoteVisibleByPolicy(
   note: Pick<ReviewNoteV1, "source" | "tags">,
   showAgentNotes: boolean,
   showHandledNotes = true,
+  showUserNotes = true,
 ) {
   if (!showHandledNotes && note.tags?.includes("handled")) return false;
-  return showAgentNotes || note.source === "user";
+  // junk: the reviewer's own notes have their own toggle, so they can be cleared off the diff
+  // without unhiding the agent's.
+  if (note.source === "user") return showUserNotes;
+  return showAgentNotes;
 }
 
 /**
@@ -201,6 +205,8 @@ export interface ReviewState {
   showAgentNotes: boolean;
   /** junk: whether notes tagged `handled` are shown; a session-local toggle, on by default. */
   showHandledNotes: boolean;
+  /** junk: whether the reviewer's own notes are drawn. */
+  showUserNotes: boolean;
   /** Stable identity of the stored note the reviewer explicitly selected. */
   activeNoteId: string | null;
   /** Notes contributed by agents during the review, in arrival order. */
@@ -215,7 +221,7 @@ export interface ReviewState {
 /** Create the first authoritative semantic state for one review document. */
 export function createInitialReviewState(
   document: ReviewDocumentV1,
-  options: { showAgentNotes?: boolean; showHandledNotes?: boolean } = {},
+  options: { showAgentNotes?: boolean; showHandledNotes?: boolean; showUserNotes?: boolean } = {},
 ): ReviewState {
   return {
     document,
@@ -232,6 +238,7 @@ export function createInitialReviewState(
     filter: "",
     showAgentNotes: options.showAgentNotes ?? false,
     showHandledNotes: options.showHandledNotes ?? true,
+    showUserNotes: options.showUserNotes ?? true,
     activeNoteId: null,
     liveNotes: [],
     userNotes: [],

@@ -493,6 +493,15 @@ const BUILTIN_COMMANDS = [
     closesMenu: true,
   },
   {
+    id: "hunk.view.toggleUserNotes",
+    title: "Toggle my notes",
+    category: "view",
+    defaultKeys: ["T"],
+    locus: "client-local",
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
     id: "hunk.view.toggleHandledNotes",
     title: "Toggle handled notes",
     category: "view",

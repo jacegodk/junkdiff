@@ -127,20 +127,18 @@ export function findNextReviewVerticalStop(
   return stops[nextIndex] ?? null;
 }
 
-/**
- * junk: which hunk a stop belongs to, or null when it sits outside every hunk — a revealed
- * context line carries its gap's owning hunk index but is not part of that hunk's own rows.
- */
-function reviewVerticalStopHunkScope(stop: ReviewVerticalStop): string | null {
-  if (stop.kind === "note") return `${stop.fileId}\u0000${stop.hunkIndex}`;
-  if (stop.cursor.expandedGapKey !== undefined) return null;
-  return `${stop.cursor.fileId}\u0000${stop.cursor.hunkIndex}`;
+/** junk: whether a stop is one of a hunk's own rows rather than revealed unchanged context. */
+function isReviewHunkStop(stop: ReviewVerticalStop): boolean {
+  return stop.kind === "note" || stop.cursor.expandedGapKey === undefined;
 }
 
 /**
- * junk: move within the hunk the cursor is in, stopping at its first and last row rather than
- * crossing into another hunk, another file, or revealed context. A cursor that is not in a hunk
- * has no bound to respect, so it moves like the unrestricted walk.
+ * junk: move through the hunks' own rows, skipping the unchanged context a reveal opened.
+ *
+ * Stepping off the last row of a hunk lands on the first row of the next one, so a walk reads
+ * the changes without wading through context; the arrows keep the unrestricted walk. A cursor
+ * sitting in revealed context is not one of these stops, so it rejoins at the nearest hunk row
+ * in the direction of travel.
  */
 export function findNextReviewVerticalStopInHunk(
   stops: ReviewVerticalStop[],
@@ -148,20 +146,26 @@ export function findNextReviewVerticalStopInHunk(
   delta: number,
 ): ReviewVerticalStop | null {
   if (stops.length === 0 || delta === 0) return null;
-  const scope = current ? reviewVerticalStopHunkScope(current) : null;
-  if (!current || scope === null) return findNextReviewVerticalStop(stops, current, delta);
+  const hunkStops = stops.filter(isReviewHunkStop);
+  if (hunkStops.length === 0) return null;
+  if (!current) return findNextReviewVerticalStop(hunkStops, null, delta);
 
-  const currentIndex = reviewVerticalStopIndexes(stops).get(reviewVerticalStopId(current)) ?? -1;
-  if (currentIndex < 0) return findNextReviewVerticalStop(stops, current, delta);
-
-  const step = Math.sign(delta);
-  let index = currentIndex;
-  for (let taken = 0; taken < Math.abs(delta); taken += 1) {
-    const candidate = stops[index + step];
-    if (!candidate || reviewVerticalStopHunkScope(candidate) !== scope) break;
-    index += step;
+  const currentId = reviewVerticalStopId(current);
+  const withinIndex = hunkStops.findIndex((stop) => reviewVerticalStopId(stop) === currentId);
+  if (withinIndex >= 0) {
+    const nextIndex = Math.min(Math.max(withinIndex + delta, 0), hunkStops.length - 1);
+    return nextIndex === withinIndex ? null : (hunkStops[nextIndex] ?? null);
   }
-  return index === currentIndex ? null : (stops[index] ?? null);
+
+  // The cursor is on a revealed line: rejoin the hunk rows at the nearest one ahead of it.
+  const indexes = reviewVerticalStopIndexes(stops);
+  const streamIndex = indexes.get(currentId) ?? -1;
+  if (streamIndex < 0) return findNextReviewVerticalStop(hunkStops, null, delta);
+  const ahead = hunkStops.filter((stop) => {
+    const index = indexes.get(reviewVerticalStopId(stop)) ?? -1;
+    return delta > 0 ? index > streamIndex : index < streamIndex;
+  });
+  return (delta > 0 ? ahead[0] : ahead.at(-1)) ?? null;
 }
 
 /** Move only between semantic note stops using the active surface's rendered order. */

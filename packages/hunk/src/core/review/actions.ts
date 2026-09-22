@@ -31,6 +31,8 @@ export type ReviewAction =
   | { type: "notes/set-visibility"; visible: boolean }
   /** junk: show or hide the notes tagged `handled`. */
   | { type: "notes/set-handled-visibility"; visible: boolean }
+  /** junk: show or hide the reviewer's own notes. */
+  | { type: "notes/set-user-visibility"; visible: boolean }
   /** junk: set or clear the `handled` tag on one stored note, user or live. */
   | { type: "notes/set-handled"; noteId: string; handled: boolean }
   | { type: "notes/add-live"; notes: readonly ReviewStoredNote[] }
