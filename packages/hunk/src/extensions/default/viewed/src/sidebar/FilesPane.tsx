@@ -6,7 +6,7 @@
  */
 import { basename } from "node:path/posix";
 import type { ScrollBoxRenderable } from "@opentui/core";
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ExtensionPaneProps } from "../../../../../extension-api";
 import { useReviewMirror } from "../reviewMirror";
 import { setSingleFilePending, useSingleFileState } from "../singleFile";
@@ -14,8 +14,12 @@ import { isViewed, useViewedState } from "../viewedStore";
 import {
   buildFlatSidebarEntries,
   buildTreeSidebarEntries,
+  collapseTreeSidebarEntries,
+  expandCollapsedDirectoryPaths,
   resolveFileSidebarMode,
+  sidebarDirectoryPaths,
   sidebarEntryStatsWidth,
+  toggleCollapsedDirectoryPath,
 } from "./entries";
 import { resolvePaneSource } from "./paneSource";
 import { DirectoryRow, FileRow, GroupHeader, fileRowId } from "./rows";
@@ -46,11 +50,20 @@ export function FilesPane({
   const mode = resolveFileSidebarMode(textWidth);
   const paddingLeft = mode === "tree" ? 0 : 1;
 
+  // Directories the reviewer closed, by the path their row stands for.
+  const [collapsedDirectoryPaths, setCollapsedDirectoryPaths] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const entries = useMemo(
     () =>
-      mode === "tree" ? buildTreeSidebarEntries(listFiles) : buildFlatSidebarEntries(listFiles),
-    [listFiles, mode],
+      mode === "tree"
+        ? collapseTreeSidebarEntries(buildTreeSidebarEntries(listFiles), collapsedDirectoryPaths)
+        : buildFlatSidebarEntries(listFiles),
+    [collapsedDirectoryPaths, listFiles, mode],
   );
+  const toggleDirectory = useCallback((path: string) => {
+    setCollapsedDirectoryPaths((current) => toggleCollapsedDirectoryPath(current, path));
+  }, []);
   const viewedByFileId = useMemo(() => {
     const map = new Map<string, boolean>();
     for (const file of listFiles) map.set(file.id, isViewed(viewed, file));
@@ -69,10 +82,20 @@ export function FilesPane({
     [entries],
   );
 
+  // Selecting a file inside a closed branch opens the branch rather than hiding the selection.
+  useEffect(() => {
+    if (!highlightedId) return;
+    const selected = listFiles.find((file) => file.id === highlightedId);
+    if (!selected) return;
+    setCollapsedDirectoryPaths((current) =>
+      expandCollapsedDirectoryPaths(current, sidebarDirectoryPaths(selected.path)),
+    );
+  }, [highlightedId, listFiles]);
+
   useEffect(() => {
     if (!highlightedId) return;
     scrollRef.current?.scrollChildIntoView(fileRowId(highlightedId));
-  }, [listFiles, mode, highlightedId]);
+  }, [listFiles, mode, highlightedId, entries]);
 
   /** Route a row click: normal selection, or record a pending single-file target. */
   const onSelectFile = (fileId: string) => {
@@ -131,6 +154,8 @@ export function FilesPane({
               return (
                 <DirectoryRow
                   key={entry.id}
+                  collapsed={collapsedDirectoryPaths.has(entry.path)}
+                  onToggleDirectory={toggleDirectory}
                   entry={entry}
                   paddingLeft={paddingLeft}
                   statsWidth={statsWidth}

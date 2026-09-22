@@ -517,7 +517,9 @@ describe("PTY layout", () => {
       const initial = await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
-      const initialMainColumn = rightmostColumnOf(initial, "alpha.ts");
+      // junk centres the file name in its band, so the pane's own edge is what moves with the
+      // drag: the hunk header sits just right of the divider.
+      const initialMainColumn = rightmostColumnOf(initial, "@@ -1 +1,2 @@");
       const initialDividerColumn = sidebarDividerColumn(initial);
       const pressColumn = initialDividerColumn - 2;
       const projectionSwitchColumn = initialDividerColumn - 4;
@@ -545,10 +547,12 @@ describe("PTY layout", () => {
 
       const resized = await harness.waitForSnapshot(
         session,
-        (text) => rightmostColumnOf(text, "alpha.ts") <= initialMainColumn - 8,
+        (text) => rightmostColumnOf(text, "@@ -1 +1,2 @@") <= initialMainColumn - 8,
         5_000,
       );
-      expect(rightmostColumnOf(resized, "alpha.ts")).toBeLessThanOrEqual(initialMainColumn - 8);
+      expect(rightmostColumnOf(resized, "@@ -1 +1,2 @@")).toBeLessThanOrEqual(
+        initialMainColumn - 8,
+      );
     } finally {
       session.close();
     }
@@ -574,14 +578,13 @@ describe("PTY layout", () => {
         .map((line) => line.slice(0, initialDividerColumn))
         .join("\n");
 
-      expect(initialSidebar).not.toContain("src/ui/");
-      expect(initialSidebar).toContain("⌄ src/");
-      expect(initialSidebar).toContain("⌄ ui/");
+      // junk joins a lone directory chain, so the tree offers one open row for the branch.
+      expect(initialSidebar).toContain("⌄ src/ui/");
       expect(
         initialSidebar
           .split("\n")
-          .find((line) => line.includes("src/"))
-          ?.indexOf("src/"),
+          .find((line) => line.includes("src/ui/"))
+          ?.indexOf("src/ui/"),
       ).toBe(4);
 
       await dragMouse(session, initialDividerColumn - 2, 6, initialDividerColumn - 4, 6);

@@ -42,8 +42,12 @@ export interface FileGroupEntry {
 export interface FileDirectoryEntry {
   kind: "directory";
   id: string;
+  /** Stable logical path this row stands for; collapsing and revealing address it. */
+  path: string;
   label: string;
   depth: number;
+  /** Files under this row, shown as a count while it is collapsed. */
+  descendantFileCount: number;
 }
 
 export type FileSidebarMode = "flat" | "tree";
@@ -207,6 +211,8 @@ function joinFirstSingleChildDirectory(entries: readonly SidebarEntry[]): Sideba
     if (directChildren !== 1 || onlyChild?.kind !== "directory") continue;
     return [
       ...entries.slice(0, index),
+      // The merged row stands for the deepest directory in the chain: collapsing it hides the
+      // whole branch, and revealing a file inside it opens exactly this row.
       { ...onlyChild, label: `${entry.label}${onlyChild.label}`, depth },
       ...entries.slice(index + 2, end).map(liftSidebarEntry),
       ...entries.slice(end),
@@ -219,22 +225,87 @@ function joinFirstSingleChildDirectory(entries: readonly SidebarEntry[]): Sideba
 export function buildTreeSidebarEntries(files: readonly SidebarFileSource[]): SidebarEntry[] {
   const entries: SidebarEntry[] = [];
   let activeDirectories: string[] = [];
+  let activeDirectoryEntries: FileDirectoryEntry[] = [];
   files.forEach((file, fileIndex) => {
     const path = formatTerminalPath(normalizeDiffPath(file.path));
     const directories = sidebarDirectorySegments(dirname(path));
     const sharedDepth = sharedDirectoryDepth(activeDirectories, directories);
+    activeDirectoryEntries = activeDirectoryEntries.slice(0, sharedDepth);
     for (let depth = sharedDepth; depth < directories.length; depth += 1) {
       const segment = directories[depth]!;
       const directoryPath = sidebarDirectoryPath(directories.slice(0, depth + 1));
-      entries.push({
+      const directoryEntry: FileDirectoryEntry = {
         kind: "directory",
         id: `directory:${fileIndex}:${depth}:${directoryPath}`,
+        path: directoryPath,
         label: sidebarDirectoryLabel(segment),
         depth,
-      });
+        descendantFileCount: 0,
+      };
+      entries.push(directoryEntry);
+      activeDirectoryEntries.push(directoryEntry);
     }
     entries.push(buildSidebarFileEntry(file, directories.length));
+    for (const directoryEntry of activeDirectoryEntries) {
+      directoryEntry.descendantFileCount += 1;
+    }
     activeDirectories = directories;
   });
   return joinSingleChildDirectories(entries);
+}
+
+/** Every directory path containing one review path, outermost first. */
+export function sidebarDirectoryPaths(path: string): string[] {
+  const terminalPath = formatTerminalPath(normalizeDiffPath(path));
+  const directories = sidebarDirectorySegments(dirname(terminalPath));
+  return directories.map((_unused, depth) => sidebarDirectoryPath(directories.slice(0, depth + 1)));
+}
+
+/** Flip one directory path without mutating the set handed in. */
+export function toggleCollapsedDirectoryPath(
+  current: ReadonlySet<string>,
+  path: string,
+): ReadonlySet<string> {
+  const next = new Set(current);
+  if (next.has(path)) next.delete(path);
+  else next.add(path);
+  return next;
+}
+
+/** Open the named ancestors, leaving every unrelated collapsed path as it was. */
+export function expandCollapsedDirectoryPaths(
+  current: ReadonlySet<string>,
+  paths: readonly string[],
+): ReadonlySet<string> {
+  const collapsed = paths.filter((path) => current.has(path));
+  if (collapsed.length === 0) return current;
+  const next = new Set(current);
+  for (const path of collapsed) next.delete(path);
+  return next;
+}
+
+/** Hide what sits under each collapsed directory row, keeping the remaining order. */
+export function collapseTreeSidebarEntries(
+  entries: readonly SidebarEntry[],
+  collapsedDirectoryPaths: ReadonlySet<string>,
+): SidebarEntry[] {
+  if (collapsedDirectoryPaths.size === 0) return [...entries];
+  const visible: SidebarEntry[] = [];
+  let collapsedDepth: number | null = null;
+  for (const entry of entries) {
+    if (entry.kind === "group") {
+      collapsedDepth = null;
+      visible.push(entry);
+      continue;
+    }
+    if (collapsedDepth !== null) {
+      if (entry.depth > collapsedDepth) continue;
+      collapsedDepth = null;
+    }
+    visible.push(entry);
+    if (entry.kind === "directory" && collapsedDirectoryPaths.has(entry.path)) {
+      collapsedDepth = entry.depth;
+    }
+  }
+  return visible;
 }

@@ -60,25 +60,40 @@ export function GroupHeader({
   );
 }
 
-/** Render one always-expanded directory row in tree mode. */
+/** Width of the disclosure column: the chevron plus one space. */
+const DISCLOSURE_WIDTH = 2;
+
+/** Render one directory row in tree mode; clicking it opens or closes the branch. */
 export function DirectoryRow({
+  collapsed,
   entry,
+  onToggleDirectory,
   paddingLeft = 1,
   statsWidth = 0,
   textWidth,
   theme,
 }: {
+  collapsed: boolean;
   entry: FileDirectoryEntry;
+  onToggleDirectory: (path: string) => void;
   paddingLeft?: number;
   statsWidth?: number;
   textWidth: number;
   theme: ExtensionPaneTheme;
 }) {
   const statsSectionWidth = statsWidth > 0 ? statsWidth + 1 : 0;
-  const indent = indentWidth(entry.depth, textWidth, statsSectionWidth + 1);
-  const labelWidth = Math.max(1, textWidth - 1 - statsSectionWidth - indent);
+  // A closed branch says how many files it is holding back.
+  const countText = collapsed
+    ? `${entry.descendantFileCount} ${entry.descendantFileCount === 1 ? "file" : "files"}`
+    : null;
+  const trailingWidth = countText ? countText.length + 1 : statsSectionWidth;
+  const indent = indentWidth(entry.depth, textWidth, DISCLOSURE_WIDTH + trailingWidth + 1);
+  const labelWidth = Math.max(1, textWidth - 1 - DISCLOSURE_WIDTH - trailingWidth - indent);
   return (
-    <box style={{ width: "100%", height: 1, flexDirection: "row", backgroundColor: theme.panel }}>
+    <box
+      style={{ width: "100%", height: 1, flexDirection: "row", backgroundColor: theme.panel }}
+      onMouseUp={() => onToggleDirectory(entry.path)}
+    >
       <box style={{ width: 1, height: 1, backgroundColor: theme.panel }} />
       <box
         style={{
@@ -89,7 +104,21 @@ export function DirectoryRow({
           backgroundColor: theme.panel,
         }}
       >
-        <text fg={theme.muted}>{fitText(entry.label, labelWidth)}</text>
+        <text fg={theme.muted}>{collapsed ? "› " : "⌄ "}</text>
+        <text fg={theme.muted}>{padText(fitText(entry.label, labelWidth), labelWidth)}</text>
+        {countText && (
+          <box
+            style={{
+              width: trailingWidth,
+              height: 1,
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              backgroundColor: theme.panel,
+            }}
+          >
+            <text fg={theme.muted}>{countText}</text>
+          </box>
+        )}
       </box>
     </box>
   );

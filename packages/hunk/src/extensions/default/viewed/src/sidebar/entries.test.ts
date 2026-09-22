@@ -2,6 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
   buildFlatSidebarEntries,
   buildTreeSidebarEntries,
+  collapseTreeSidebarEntries,
+  expandCollapsedDirectoryPaths,
+  sidebarDirectoryPaths,
+  toggleCollapsedDirectoryPath,
   resolveFileSidebarMode,
   sidebarEntryStats,
   sidebarEntryStatsWidth,
@@ -127,6 +131,53 @@ describe("buildTreeSidebarEntries", () => {
     expect(
       label(buildTreeSidebarEntries([src("src/ui/panes/a.ts"), src("src/core/run/b.ts")])),
     ).toEqual(["0:dir:src/", "1:dir:ui/panes/", "2:file:a.ts", "1:dir:core/run/", "2:file:b.ts"]);
+  });
+
+  test("junk: a directory row carries the path it stands for and what it holds", () => {
+    const entries = buildTreeSidebarEntries([src("src/ui/a.ts"), src("src/b.ts")]);
+    const directories = entries.filter((entry) => entry.kind === "directory");
+    expect(directories.map((entry) => [entry.path, entry.descendantFileCount])).toEqual([
+      ["src", 2],
+      ["src/ui", 1],
+    ]);
+  });
+
+  test("junk: collapsing a directory hides what sits under it and nothing else", () => {
+    const entries = buildTreeSidebarEntries([
+      src("src/ui/a.ts"),
+      src("src/b.ts"),
+      src("docs/c.md"),
+    ]);
+    const shown = (collapsed: ReadonlySet<string>) =>
+      collapseTreeSidebarEntries(entries, collapsed).map((entry) =>
+        entry.kind === "file" ? entry.name : entry.kind === "directory" ? entry.label : "group",
+      );
+
+    expect(shown(new Set())).toEqual(["src/", "ui/", "a.ts", "b.ts", "docs/", "c.md"]);
+    // The branch closes; its sibling file and the unrelated directory stay.
+    expect(shown(new Set(["src/ui"]))).toEqual(["src/", "ui/", "b.ts", "docs/", "c.md"]);
+    // Closing the parent hides the whole subtree, and nothing after it.
+    expect(shown(new Set(["src"]))).toEqual(["src/", "docs/", "c.md"]);
+    // A path that no row stands for changes nothing.
+    expect(shown(new Set(["nowhere"]))).toEqual(shown(new Set()));
+  });
+
+  test("junk: a path names its ancestors, and toggling or revealing moves one at a time", () => {
+    expect(sidebarDirectoryPaths("src/ui/panes/a.ts")).toEqual(["src", "src/ui", "src/ui/panes"]);
+    expect(sidebarDirectoryPaths("a.ts")).toEqual([]);
+
+    const closed = toggleCollapsedDirectoryPath(new Set(), "src/ui");
+    expect([...closed]).toEqual(["src/ui"]);
+    expect([...toggleCollapsedDirectoryPath(closed, "src/ui")]).toEqual([]);
+
+    // Revealing a file opens only the ancestors that were closed.
+    const mixed: ReadonlySet<string> = new Set(["src/ui", "docs"]);
+    expect([...expandCollapsedDirectoryPaths(mixed, sidebarDirectoryPaths("src/ui/a.ts"))]).toEqual(
+      ["docs"],
+    );
+    expect(expandCollapsedDirectoryPaths(mixed, sidebarDirectoryPaths("elsewhere/a.ts"))).toBe(
+      mixed,
+    );
   });
 
   test("carries path and change type onto file entries", () => {
