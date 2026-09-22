@@ -94,11 +94,39 @@ describe("buildTreeSidebarEntries", () => {
 
   test("keeps an absolute root marker on the first directory row", () => {
     const entries = buildTreeSidebarEntries([src("/etc/hosts")]);
+    // junk: the root holds nothing but `etc`, so the chain is one row.
     expect(entries.map((e) => (e.kind === "directory" ? e.label : e.kind))).toEqual([
-      "/",
-      "etc/",
+      "/etc/",
       "file",
     ]);
+  });
+
+  test("junk: a directory holding nothing but one directory joins with it", () => {
+    const label = (entries: ReturnType<typeof buildTreeSidebarEntries>) =>
+      entries.map((e) =>
+        e.kind === "file"
+          ? `${e.depth}:file:${e.name}`
+          : e.kind === "directory"
+            ? `${e.depth}:dir:${e.label}`
+            : "group",
+      );
+
+    // One long branch collapses to a single row, however deep it runs.
+    expect(label(buildTreeSidebarEntries([src("src/ui/panes/a.ts")]))).toEqual([
+      "0:dir:src/ui/panes/",
+      "1:file:a.ts",
+    ]);
+    // A directory that also holds a file of its own keeps its own row.
+    expect(label(buildTreeSidebarEntries([src("src/ui/a.ts"), src("src/b.ts")]))).toEqual([
+      "0:dir:src/",
+      "1:dir:ui/",
+      "2:file:a.ts",
+      "1:file:b.ts",
+    ]);
+    // Two branches under one directory keep it, and each branch joins on its own.
+    expect(
+      label(buildTreeSidebarEntries([src("src/ui/panes/a.ts"), src("src/core/run/b.ts")])),
+    ).toEqual(["0:dir:src/", "1:dir:ui/panes/", "2:file:a.ts", "1:dir:core/run/", "2:file:b.ts"]);
   });
 
   test("carries path and change type onto file entries", () => {

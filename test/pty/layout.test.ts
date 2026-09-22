@@ -390,13 +390,16 @@ describe("PTY layout", () => {
       });
 
       expect(harness.countMatches(wide, /alpha\.ts/g)).toBeGreaterThanOrEqual(2);
-      expect(sidebarFrame(wide)).not.toContain("src/ui/");
       expect(wide).toMatch(/▌.*▌/);
+
+      // junk joins a lone directory chain into one row, so the sidebar reads `src/ui/` at every
+      // width; what the resize changes is the review pane beside it.
+      expect(sidebarFrame(wide)).toContain("src/ui/");
 
       session.resize({ cols: 180, rows: 24 });
       const medium = await harness.waitForSnapshot(
         session,
-        (text) => sidebarFrame(text).includes("src/ui/"),
+        (text) => harness.countMatches(text, /alpha\.ts/g) >= 2 && /▌.*▌/.test(text),
         5_000,
       );
       expect(harness.countMatches(medium, /alpha\.ts/g)).toBeGreaterThanOrEqual(2);

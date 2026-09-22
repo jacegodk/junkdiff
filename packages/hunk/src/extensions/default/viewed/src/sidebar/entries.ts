@@ -163,6 +163,58 @@ function sharedDirectoryDepth(previous: readonly string[], next: readonly string
   return depth;
 }
 
+/** The nesting level one row sits at; a group header never nests. */
+function sidebarEntryDepth(entry: SidebarEntry): number {
+  return entry.kind === "group" ? 0 : entry.depth;
+}
+
+/** Re-nest one row after its ancestor chain lost a level. */
+function liftSidebarEntry(entry: SidebarEntry): SidebarEntry {
+  return entry.kind === "group" ? entry : { ...entry, depth: entry.depth - 1 };
+}
+
+/**
+ * junk: join a directory that holds nothing but one directory into a single row.
+ *
+ * A path like `src/ui/panes` spends three rows on one branch, which is three rows of sidebar
+ * for no choice offered. Merging the chain reads as `src/ui/panes/` on one row and leaves the
+ * files under it exactly where they were.
+ */
+export function joinSingleChildDirectories(entries: readonly SidebarEntry[]): SidebarEntry[] {
+  let current = [...entries];
+  for (;;) {
+    const merged = joinFirstSingleChildDirectory(current);
+    if (!merged) return current;
+    current = merged;
+  }
+}
+
+/** One merge pass: rebuild the list around the first chain found, or nothing when there is none. */
+function joinFirstSingleChildDirectory(entries: readonly SidebarEntry[]): SidebarEntry[] | null {
+  for (const [index, entry] of entries.entries()) {
+    if (entry.kind !== "directory") continue;
+    const depth = entry.depth;
+    let end = index + 1;
+    let directChildren = 0;
+    let onlyChild: SidebarEntry | undefined;
+    while (end < entries.length && sidebarEntryDepth(entries[end]!) > depth) {
+      if (sidebarEntryDepth(entries[end]!) === depth + 1) {
+        directChildren += 1;
+        onlyChild ??= entries[end];
+      }
+      end += 1;
+    }
+    if (directChildren !== 1 || onlyChild?.kind !== "directory") continue;
+    return [
+      ...entries.slice(0, index),
+      { ...onlyChild, label: `${entry.label}${onlyChild.label}`, depth },
+      ...entries.slice(index + 2, end).map(liftSidebarEntry),
+      ...entries.slice(end),
+    ];
+  }
+  return null;
+}
+
 /** Build an always-expanded hierarchy without regrouping files away from review order. */
 export function buildTreeSidebarEntries(files: readonly SidebarFileSource[]): SidebarEntry[] {
   const entries: SidebarEntry[] = [];
@@ -184,5 +236,5 @@ export function buildTreeSidebarEntries(files: readonly SidebarFileSource[]): Si
     entries.push(buildSidebarFileEntry(file, directories.length));
     activeDirectories = directories;
   });
-  return entries;
+  return joinSingleChildDirectories(entries);
 }
