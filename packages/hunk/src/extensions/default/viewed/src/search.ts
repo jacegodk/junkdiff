@@ -9,6 +9,8 @@ export interface SearchHit {
   side: "old" | "new";
   line: number;
   range: readonly [number, number];
+  /** junk: set when only the file's source carries this line, so the diff must open to show it. */
+  hidden?: true;
 }
 
 /** Content-search state: the active query, its merged hits, the current pick, and the prompt. */
@@ -31,6 +33,16 @@ const initialState: SearchState = {
 
 let state: SearchState = initialState;
 const listeners = new Set<() => void>();
+/**
+ * junk: source text per file, for scanning what the patch does not carry.
+ *
+ * A patch holds the changed lines and a little context, so scanning it alone never finds the
+ * unchanged code an expansion brings on screen. The reviewed file's own text does, and it is
+ * read once per file and dropped when the changeset is replaced. Each entry keeps the patch it
+ * was read beside: a reload that changes the patch changed the file too, so the stored text is
+ * stale and the next search reads it again.
+ */
+const documents = new Map<string, { patch: string; text: string }>();
 
 function publish(patch: Partial<SearchState>) {
   state = { ...state, ...patch };
@@ -155,13 +167,66 @@ export function setQuery(query: string): void {
   publish({ query, hits: [], currentIndex: -1 });
 }
 
+/** junk: retain one file's source text for scanning, tied to the patch it was read beside. */
+export function setSearchDocument(
+  file: Pick<ExtensionDiffFile, "id" | "patch">,
+  text: string,
+): void {
+  documents.set(file.id, { patch: file.patch, text });
+}
+
+/** junk: whether this file's source has been read and still matches the patch on screen. */
+export function hasSearchDocument(file: Pick<ExtensionDiffFile, "id" | "patch">): boolean {
+  return documents.get(file.id)?.patch === file.patch;
+}
+
 /**
- * Hook for the file-list replacement that follows `changeset_loaded`/`session_reload`.
+ * junk: scan one file, preferring its source over its patch.
  *
- * Nothing is keyed by file id any more, so there is nothing to drop; the call site stays so a
- * later per-file cache has one obvious place to be pruned from.
+ * Every line of the source is searched, so a match in unchanged code is found whether or not it
+ * is on screen; the ones the patch does not carry are marked `hidden`, and the caller opens the
+ * file before revealing one. Without a source (binary, too large, a piped patch) the patch is
+ * still scanned, exactly as before.
  */
-export function pruneSearchFiles(_ids: Iterable<string>): void {}
+export function scanFileHits(
+  file: Pick<ExtensionDiffFile, "id" | "path" | "patch">,
+  query: string,
+): SearchHit[] {
+  if (!hasSearchDocument(file)) return scanPatchHits(file, query);
+  const document = documents.get(file.id)!.text;
+
+  const shown = new Set(
+    scanPatchHits(file, query).map((hit) => `${hit.side}:${hit.line}:${hit.range[0]}`),
+  );
+  const hits: SearchHit[] = [];
+  const lines = document.replaceAll("\r\n", "\n").split("\n");
+  if (lines[lines.length - 1] === "") lines.pop();
+  lines.forEach((text, index) => {
+    for (const range of findLineHits(text, query)) {
+      const hit: SearchHit = {
+        fileId: file.id,
+        filePath: file.path,
+        side: "new",
+        line: index + 1,
+        range,
+      };
+      hits.push(shown.has(`new:${hit.line}:${range[0]}`) ? hit : { ...hit, hidden: true });
+    }
+  });
+  // Removed lines live only in the patch, and the source cannot carry them.
+  for (const hit of scanPatchHits(file, query)) {
+    if (hit.side === "old") hits.push(hit);
+  }
+  return hits.sort((a, b) => a.line - b.line || a.range[0] - b.range[0]);
+}
+
+/** Drop the source text of files the replaced changeset no longer carries. */
+export function pruneSearchFiles(ids: Iterable<string>): void {
+  const keep = new Set(ids);
+  for (const fileId of documents.keys()) {
+    if (!keep.has(fileId)) documents.delete(fileId);
+  }
+}
 
 /** Clamp a raw index into `[0, length - 1]`, or -1 when there is nothing to point at. */
 function clampIndex(index: number, length: number): number {
@@ -177,8 +242,9 @@ export interface RebuildHitsOptions {
 
 /**
  * Rebuild the merged hit list from the given visible files, in order.
- * Skips any file in `options.excludeFileIds` and scans each remaining file's patch. Keeps
- * pointing at the current hit if it still exists in the new list, else clamps the index.
+ * Skips any file in `options.excludeFileIds` and scans each remaining file's source, or its
+ * patch when no source was read. Keeps pointing at the current hit if it still exists in the new
+ * list, else clamps the index.
  */
 export function rebuildHits(
   visibleFiles: readonly ExtensionDiffFile[],
@@ -188,7 +254,7 @@ export function rebuildHits(
   const nextHits: SearchHit[] = [];
   for (const file of visibleFiles) {
     if (options?.excludeFileIds?.has(file.id)) continue;
-    nextHits.push(...scanPatchHits(file, state.query));
+    nextHits.push(...scanFileHits(file, state.query));
   }
   const pinnedIndex = pinned ? nextHits.findIndex((hit) => sameHit(hit, pinned)) : -1;
   const nextIndex =
@@ -225,5 +291,6 @@ export function clearSearch(): void {
 /** Reset module state between tests. */
 export function resetSearchForTests(): void {
   state = initialState;
+  documents.clear();
   listeners.clear();
 }

@@ -47,12 +47,15 @@ import {
   currentHit,
   editDraft,
   getSearchState,
+  hasSearchDocument,
   openPrompt,
   pruneSearchFiles,
   rebuildHits,
   sameHit,
-  scanPatchHits,
+  scanFileHits,
   setQuery,
+  setSearchDocument,
+  type SearchHit,
   stepHit,
 } from "./src/search";
 import {
@@ -124,13 +127,38 @@ function rebuildHitsIfActive(): void {
 /** Resolver for the open search prompt; settled by Enter (with the draft) or Esc (`null`). */
 let promptResolve: ((value: string | null) => void) | null = null;
 
+/**
+ * junk: read the source of every file a search will scan, once per file.
+ *
+ * A patch carries only what changed, so searching it misses the unchanged code an expansion
+ * shows. Reading the file's own text makes the search answer for the whole file. A file with no
+ * readable source (binary, too large, a piped patch) keeps its patch as the thing scanned.
+ */
+async function loadSearchDocuments(ctx: ExtensionCommandContext): Promise<void> {
+  const visible = visibleFiles(getReviewMirror());
+  const skip = viewedFileIds(visible);
+  for (const file of visible) {
+    if (skip.has(file.id) || hasSearchDocument(file)) continue;
+    if (file.isBinary || file.isTooLarge || file.changeType === "deleted") continue;
+    // One unreadable file must not stop the search: it keeps its patch as the thing scanned,
+    // and the next search tries it again.
+    try {
+      const document = await ctx.workspace.readDocument(file.id, "new");
+      if (document !== null) setSearchDocument(file, document);
+    } catch {
+      continue;
+    }
+  }
+}
+
 /** Apply a submitted query: rebuild hits, refresh presentation, and reveal (or notice) the first pick. */
-function applySearch(ctx: ExtensionCommandContext, query: string): void {
+async function applySearch(ctx: ExtensionCommandContext, query: string): Promise<void> {
   setQuery(query);
+  await loadSearchDocuments(ctx);
   rebuildVisibleHits();
   ctx.highlights.refresh(SEARCH_HIGHLIGHTER_ID);
   const hit = currentHit();
-  if (hit) ctx.navigation.revealLine(hit.fileId, hit.side, hit.line);
+  if (hit) await revealHit(ctx, hit);
   else ctx.notify("No hits", "info");
   searchCtx = ctx;
   if (!ctx.keyboardModes.isActive(SEARCH_ACTIVE_MODE_ID)) {
@@ -148,11 +176,25 @@ function applyClear(ctx: ExtensionCommandContext): void {
 }
 
 /**
+ * junk: bring one hit on screen, opening the file first when only its source carries that line.
+ *
+ * Search answers for the whole file, so a pick can land in unchanged code the diff is still
+ * hiding; showing the file whole is what makes that line exist on screen.
+ */
+async function revealHit(ctx: ExtensionCommandContext, hit: SearchHit): Promise<void> {
+  if (hit.hidden) {
+    ctx.navigation.selectFile(hit.fileId);
+    await ctx.commands.execute("hunk.review.expandFile");
+  }
+  ctx.navigation.revealLine(hit.fileId, hit.side, hit.line);
+}
+
+/**
  * Move to the next/previous hit, refreshing only the files whose marks actually changed (the
  * hit left, the hit landed on — a file can be both, or the two can differ, or there can be just
  * one when there was no previous pick), and revealing the new pick; notices ends and wraps.
  */
-function moveHit(ctx: ExtensionCommandContext, direction: 1 | -1): void {
+async function moveHit(ctx: ExtensionCommandContext, direction: 1 | -1): Promise<void> {
   const previous = currentHit();
   const step = stepHit(direction);
   if (!step) {
@@ -165,7 +207,7 @@ function moveHit(ctx: ExtensionCommandContext, direction: 1 | -1): void {
   for (const fileId of fileIds) {
     ctx.highlights.refresh(SEARCH_HIGHLIGHTER_ID, { fileId });
   }
-  ctx.navigation.revealLine(step.hit.fileId, step.hit.side, step.hit.line);
+  await revealHit(ctx, step.hit);
   if (step.wrapped)
     ctx.notify(direction === 1 ? "Wrapped to the first hit" : "Wrapped to the last hit", "info");
 }
@@ -207,7 +249,7 @@ async function runPrompt(ctx: ExtensionCommandContext, initial: string): Promise
     applyClear(ctx);
     return;
   }
-  applySearch(ctx, value);
+  await applySearch(ctx, value);
 }
 
 /** Register the hunk-viewed pane, commands, keyboard mode, and event handlers. */
@@ -584,7 +626,9 @@ export default function (hunk: HunkExtensionAPI) {
       const current = currentHit();
       const marksPerLine = new Map<string, number>();
       const marks: ExtensionLineHighlight[] = [];
-      for (const hit of scanPatchHits(file, query)) {
+      // junk: the same source-first scan the hit list uses, so a match in revealed context is
+      // marked too. A mark on a line the file is not showing paints nothing and costs nothing.
+      for (const hit of scanFileHits(file, query)) {
         if (marks.length >= MAX_MARKS_PER_FILE) break;
         const lineKey = `${hit.side}:${hit.line}`;
         const marksOnLine = marksPerLine.get(lineKey) ?? 0;

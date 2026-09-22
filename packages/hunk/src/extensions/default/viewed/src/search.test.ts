@@ -8,10 +8,14 @@ import {
   findLineHits,
   getSearchState,
   openPrompt,
+  hasSearchDocument,
+  pruneSearchFiles,
   rebuildHits,
   resetSearchForTests,
+  scanFileHits,
   scanPatchHits,
   setQuery,
+  setSearchDocument,
   stepHit,
 } from "./search";
 
@@ -77,6 +81,49 @@ describe("scanPatchHits", () => {
   test("empty patch yields no hits", () => {
     const f = file("f1", "a.ts", "");
     expect(scanPatchHits(f, "foo")).toEqual([]);
+  });
+});
+
+describe("scanFileHits", () => {
+  // The patch shows line 2 only; line 4 is unchanged code no hunk carries.
+  const patch = "@@ -2,1 +2,1 @@\n-const b = old;\n+const b = foo;\n";
+  const source = "const a = 1;\nconst b = foo;\nconst c = 2;\nreturn foo;\n";
+
+  test("falls back to the patch when no source was read", () => {
+    const f = file("f1", "a.ts", patch);
+    expect(scanFileHits(f, "foo")).toEqual(scanPatchHits(f, "foo"));
+  });
+
+  test("scans the source, marking as hidden every line the patch does not carry", () => {
+    const f = file("f1", "a.ts", patch);
+    setSearchDocument(f, source);
+    expect(scanFileHits(f, "foo")).toEqual([
+      { fileId: "f1", filePath: "a.ts", side: "new", line: 2, range: [10, 13] },
+      { fileId: "f1", filePath: "a.ts", side: "new", line: 4, range: [7, 10], hidden: true },
+    ]);
+  });
+
+  test("keeps the old side's hits, which live only in the patch", () => {
+    const f = file("f1", "a.ts", "@@ -2,1 +2,1 @@\n-const b = foo;\n+const b = bar;\n");
+    setSearchDocument(f, "const a = 1;\nconst b = bar;\n");
+    expect(scanFileHits(f, "foo")).toEqual([
+      { fileId: "f1", filePath: "a.ts", side: "old", line: 2, range: [10, 13] },
+    ]);
+  });
+
+  test("a reload that changes the patch makes the stored source stale, and the patch is scanned", () => {
+    const f = file("f1", "a.ts", patch);
+    setSearchDocument(f, source);
+    const reloaded = file("f1", "a.ts", "@@ -9,1 +9,1 @@\n-x\n+foo nine\n");
+    expect(hasSearchDocument(reloaded)).toBe(false);
+    expect(scanFileHits(reloaded, "foo")).toEqual(scanPatchHits(reloaded, "foo"));
+  });
+
+  test("pruneSearchFiles drops the source of a file the new changeset lost", () => {
+    const f = file("f1", "a.ts", patch);
+    setSearchDocument(f, source);
+    pruneSearchFiles(["f2"]);
+    expect(hasSearchDocument(f)).toBe(false);
   });
 });
 

@@ -158,6 +158,10 @@ interface CommandCalls {
   fileViewToggleRefused: boolean;
   /** Value `keyboardModes.enterMode` returns; `false` simulates the mode failing to start. */
   enterModeResult: boolean;
+  /** Sources `workspace.readDocument(fileId, "new")` returns; a missing file reads `null`. */
+  documents: Map<string, string>;
+  /** File ids whose `workspace.readDocument` rejects, as an unreadable file does. */
+  documentErrors: Set<string>;
 }
 
 /** Build an empty `CommandCalls` recorder for a `commandContext`. */
@@ -178,6 +182,8 @@ function createCalls(): CommandCalls {
     fileViewActive: false,
     fileViewToggleRefused: false,
     enterModeResult: true,
+    documents: new Map(),
+    documentErrors: new Set(),
   };
 }
 
@@ -240,6 +246,12 @@ function commandContext(
       close: (id: string) => calls.paneCloses.push(id),
       toggle: () => {},
       isOpen: () => false,
+    },
+    workspace: {
+      readDocument: async (fileId: string, side: string) => {
+        if (calls.documentErrors.has(fileId)) throw new Error("unreadable");
+        return side === "new" ? (calls.documents.get(fileId) ?? null) : null;
+      },
     },
   } as unknown as ExtensionCommandContext;
 }
@@ -1070,7 +1082,7 @@ describe("search", () => {
     expect(calls.highlightRefreshes).toEqual(["search:1"]);
   });
 
-  test("searchPrevious wraps to the last hit with a notice", () => {
+  test("searchPrevious wraps to the last hit with a notice", async () => {
     const fake = createFakeHunk();
     registerExtension(fake.hunk);
     const files = [makeFile("1", "a.ts", { patch: "@@ -1,2 +1,2 @@\n foo one\n foo two\n" })];
@@ -1079,12 +1091,71 @@ describe("search", () => {
     rebuildHits(visibleFiles(getReviewMirror()));
 
     const notified: Array<[string, string | undefined]> = [];
-    fake.commands
+    await fake.commands
       .get("searchPrevious")!
       .handler(commandContext(files[0]!, [], notified, createCalls()));
 
     expect(getSearchState().currentIndex).toBe(1);
     expect(notified).toEqual([["Wrapped to the last hit", "info"]]);
+  });
+
+  test("a hit the patch does not carry opens the file whole before revealing it", async () => {
+    const fake = createFakeHunk();
+    registerExtension(fake.hunk);
+    const files = [makeFile("1", "a.ts", { patch: "@@ -1,1 +1,1 @@\n foo\n" })];
+    loadChangeset(fake, files);
+
+    const calls = createCalls();
+    calls.documents.set("1", "foo\nbar\nfoo deep\n");
+    const selectedIds: string[] = [];
+    const pending = fake.commands
+      .get("search")!
+      .handler(commandContext(files[0]!, selectedIds, [], calls));
+    const mode = fake.keyboardModes.get("search-prompt")!;
+    for (const sequence of ["f", "o", "o"]) mode.onKey({ sequence }, modeContext(calls));
+    mode.onKey({ name: "enter" }, modeContext(calls));
+    await pending;
+
+    // Line 1 is in the patch; line 3 is unchanged code only the source carries.
+    expect(getSearchState().hits.map((hit) => [hit.line, hit.hidden ?? false])).toEqual([
+      [1, false],
+      [3, true],
+    ]);
+    expect(calls.revealed).toEqual([{ fileId: "1", side: "new", line: 1 }]);
+    expect(calls.executed).toEqual([]);
+
+    await fake.commands
+      .get("searchNext")!
+      .handler(commandContext(files[0]!, selectedIds, [], calls));
+
+    expect(selectedIds).toEqual(["1"]);
+    expect(calls.executed).toEqual(["hunk.review.expandFile"]);
+    expect(calls.revealed.at(-1)).toEqual({ fileId: "1", side: "new", line: 3 });
+  });
+
+  test("an unreadable source leaves that file scanned by its patch, and the others by their source", async () => {
+    const fake = createFakeHunk();
+    registerExtension(fake.hunk);
+    const files = [
+      makeFile("1", "a.ts", { patch: "@@ -1,1 +1,1 @@\n foo\n" }),
+      makeFile("2", "b.ts", { patch: "@@ -1,1 +1,1 @@\n foo\n" }),
+    ];
+    loadChangeset(fake, files);
+
+    const calls = createCalls();
+    calls.documentErrors.add("1");
+    calls.documents.set("2", "foo\nfoo deep\n");
+    const pending = fake.commands.get("search")!.handler(commandContext(files[0]!, [], [], calls));
+    const mode = fake.keyboardModes.get("search-prompt")!;
+    for (const sequence of ["f", "o", "o"]) mode.onKey({ sequence }, modeContext(calls));
+    mode.onKey({ name: "enter" }, modeContext(calls));
+    await pending;
+
+    expect(getSearchState().hits.map((hit) => [hit.fileId, hit.line])).toEqual([
+      ["1", 1],
+      ["2", 1],
+      ["2", 2],
+    ]);
   });
 
   test("searchNext notifies when there are no hits", () => {
