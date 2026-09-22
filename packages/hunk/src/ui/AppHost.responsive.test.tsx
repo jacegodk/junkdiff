@@ -135,7 +135,8 @@ describe("responsive app", () => {
 
     const frame = await captureFrameForBootstrap(bootstrap, 40, 12);
 
-    expect(frame).toContain("packages/visual-studio-cod... +1 -1");
+    // junk: the name sits inside the file's band, and the stats stay at the right edge.
+    expect(frame).toMatch(/█ packages\/visual-studio\S*\.\.\. █ \+1 -1/);
     expect(frame).not.toContain("packages/visual-studio-code-.");
   });
 

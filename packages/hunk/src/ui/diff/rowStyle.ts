@@ -4,6 +4,7 @@ import type { ExtensionLineHighlightTone } from "../../extension-api/types";
 import type { SplitLineCell, UnifiedLineCell } from "./diffRows";
 
 const INACTIVE_RAIL_BLEND = 0.35;
+const FILE_BAND_BLEND = 0.75;
 const SELECTION_BG_BLEND = 0.75;
 const CURSOR_LINE_BG_BLEND = 0.2;
 const selectionBackgroundCache = new WeakMap<AppTheme, Map<string, string>>();
@@ -75,6 +76,14 @@ export function neutralRailColor(theme: AppTheme) {
 /** Dim a rail color for inactive hunks by blending toward the panel background. */
 export function dimRailColor(color: string, theme: AppTheme) {
   return blendHex(color, theme.panel, INACTIVE_RAIL_BLEND);
+}
+
+/**
+ * junk: the filled band that starts a file. Bright enough to separate two files at a glance,
+ * blended a little toward the pane so it does not read as white on a dark theme.
+ */
+export function fileBandColor(theme: AppTheme) {
+  return blendHex(theme.muted, theme.panel, FILE_BAND_BLEND);
 }
 
 /** Pick the unified-view rail color for one rendered row. */

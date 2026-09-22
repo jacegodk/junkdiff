@@ -13,8 +13,6 @@ import type { VisibleAgentNote } from "../../lib/agentAnnotations";
 import type { ValidatedLineHighlight } from "../../highlights/validate";
 import type { CopySelectedRowRange } from "../../lib/diffSpatial";
 import { diffSectionId } from "../../lib/ids";
-import { dimRailColor } from "../../diff/rowStyle";
-import { fitText } from "../../lib/text";
 import type { AppTheme } from "../../themes";
 import { DiffFileHeaderRow } from "./DiffFileHeaderRow";
 import { FileView } from "./FileView";
@@ -40,7 +38,6 @@ interface DiffSectionProps {
   cursorHighlight?: CursorHighlight;
   shouldLoadHighlight: boolean;
   sectionGeometry?: DiffSectionGeometry;
-  separatorWidth: number;
   showLineNumbers: boolean;
   showHunkHeaders: boolean;
   sourceStatus: FileSourceStatus | undefined;
@@ -85,7 +82,6 @@ function DiffSectionComponent({
   cursorHighlight,
   shouldLoadHighlight,
   sectionGeometry,
-  separatorWidth,
   showLineNumbers,
   showHunkHeaders,
   sourceStatus,
@@ -131,29 +127,14 @@ function DiffSectionComponent({
             backgroundColor: theme.panel,
           }}
         >
-          {separatorHeight > 1 ? (
-            <box
-              style={{
-                width: "100%",
-                height: separatorHeight - 1,
-                backgroundColor: theme.panel,
-              }}
-            />
-          ) : null}
+          {/* junk: blank air only. The band that starts the next file is its header row. */}
           <box
             style={{
               width: "100%",
-              height: 1,
-              paddingLeft: 1,
-              paddingRight: 1,
+              height: separatorHeight,
               backgroundColor: theme.panel,
             }}
-          >
-            {/* junk: a solid bar, so the break between two files is visible at a glance. */}
-            <text fg={dimRailColor(theme.muted, theme)}>
-              {fitText("█".repeat(separatorWidth), separatorWidth)}
-            </text>
-          </box>
+          />
         </box>
       ) : null}
 
@@ -256,7 +237,6 @@ export const DiffSection = memo(DiffSectionComponent, (previous, next) => {
     previous.cursorHighlight === next.cursorHighlight &&
     previous.shouldLoadHighlight === next.shouldLoadHighlight &&
     previous.sectionGeometry === next.sectionGeometry &&
-    previous.separatorWidth === next.separatorWidth &&
     previous.showLineNumbers === next.showLineNumbers &&
     previous.showHunkHeaders === next.showHunkHeaders &&
     previous.sourceStatus === next.sourceStatus &&

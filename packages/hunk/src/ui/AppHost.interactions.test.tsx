@@ -575,11 +575,12 @@ async function pressHunkNavigationKey(
 }
 
 function firstCrossFileHunkNavigationHeader(frame: string) {
+  // junk: a file header is a band with the name in the middle of it.
   return (
     frame
       .split("\n")
       .map((line) => line.trim())
-      .find((line) => line.startsWith("long-file.txt") || line.startsWith("short-file.ts")) ?? ""
+      .find((line) => /█.*(long-file\.txt|short-file\.ts)/.test(line)) ?? ""
   );
 }
 

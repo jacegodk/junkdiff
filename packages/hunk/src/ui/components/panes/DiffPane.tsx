@@ -347,7 +347,6 @@ export function DiffPane({
   scrollToNote = false,
   draftNote = null,
   draftNoteFocused = false,
-  separatorWidth,
   pagerMode = false,
   copyDecorations = false,
   screenTop = 0,
@@ -437,7 +436,6 @@ export function DiffPane({
   scrollToNote?: boolean;
   draftNote?: DraftReviewNote | null;
   draftNoteFocused?: boolean;
-  separatorWidth: number;
   pagerMode?: boolean;
   copyDecorations?: boolean;
   screenTop?: number;
@@ -2658,7 +2656,6 @@ export function DiffPane({
                           highlightPrefetchFileIds.has(file.id)
                         }
                         sectionGeometry={sectionGeometry[index]}
-                        separatorWidth={separatorWidth}
                         showHeader={shouldRenderInStreamFileHeader(index)}
                         separatorHeight={index > 0 ? fileGap : 0}
                         showLineNumbers={showLineNumbers}

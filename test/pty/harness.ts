@@ -64,9 +64,10 @@ interface ChangedFileSpec {
  * The review's menu bar, as the app draws it.
  *
  * junk bundles hunk-viewed, so a real session carries an Extensions menu between Agent and
- * Help; the optional group keeps this matching a session started without extensions too.
+ * Help, and a narrow terminal drops the tail of the bar into an ellipsis. Matching up to Agent
+ * covers every width and both extension states.
  */
-export const REVIEW_MENU_BAR = /View\s+Navigate\s+Agent\s+(?:Extensions\s+)?Help/;
+export const REVIEW_MENU_BAR = /View\s+Navigate\s+Agent/;
 
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));

@@ -135,11 +135,11 @@ describe("PTY layout", () => {
       const lines = snapshot.split("\n");
       const betaIndex = lines.findIndex((line) => line.includes("beta.ts"));
       expect(betaIndex).toBeGreaterThan(2);
+      // junk: the gap is blank air and the file's own header is the band that follows it.
       const preceding = lines.slice(betaIndex - 3, betaIndex);
       expect(preceding).toHaveLength(3);
-      expect(preceding[0]?.trim()).toBe("");
-      expect(preceding[1]?.trim()).toBe("");
-      expect(preceding[2]).toContain("─");
+      for (const line of preceding) expect(line.trim()).toBe("");
+      expect(lines[betaIndex]).toContain("█");
     } finally {
       session.close();
     }
@@ -362,9 +362,10 @@ describe("PTY layout", () => {
       await session.waitForText(REVIEW_MENU_BAR, {
         timeout: 15_000,
       });
+      // junk: the name sits inside the file's band, and the stats keep the right edge.
       const snapshot = await harness.waitForSnapshot(
         session,
-        (text) => text.includes("packages/visual-studio-cod... +1 -1"),
+        (text) => /█ packages\/visual-studio\S*\.\.\. █ \+1 -1/.test(text),
         5_000,
       );
 

@@ -1575,7 +1575,6 @@ export function App({
   const topTitle = `${bootstrap.changeset.title}  ${changedFileCount} ${changedFileLabel}  +${totalAdditions}  -${totalDeletions}`;
   const diffHeaderStatsWidth = maxFileHeaderStatsWidth(filteredFiles);
   const diffHeaderLabelWidth = Math.max(0, diffContentWidth - diffHeaderStatsWidth - 1);
-  const diffSeparatorWidth = Math.max(0, diffContentWidth - 2);
   const diffPaneScreenTop = (showMenuBar ? 1 : 0) + presentedPaneLayout.reviewBounds.y;
 
   /** Render one pane from the exact accepted host rectangle. */
@@ -1770,7 +1769,6 @@ export function App({
             scrollToNote={review.scrollToNote}
             draftNote={review.draftNote}
             draftNoteFocused={focusArea === "note"}
-            separatorWidth={diffSeparatorWidth}
             showAgentNotes={showAgentNotes}
             showHandledNotes={review.showHandledNotes}
             showUserNotes={review.showUserNotes}

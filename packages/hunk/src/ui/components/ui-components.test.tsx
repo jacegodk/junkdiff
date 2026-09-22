@@ -256,7 +256,6 @@ function createDiffPaneProps(
     scrollRef: createRef<ScrollBoxRenderable>(),
     selectedFileId: files[0]?.id,
     selectedHunkIndex: 0,
-    separatorWidth: 68,
     showAgentNotes: false,
     showLineNumbers: true,
     showHunkHeaders: true,
@@ -611,7 +610,6 @@ describe("UI components", () => {
         scrollRef={createRef()}
         selectedFileId="alpha"
         selectedHunkIndex={0}
-        separatorWidth={68}
         showAgentNotes={false}
         showLineNumbers={true}
         showHunkHeaders={true}
@@ -1278,7 +1276,6 @@ describe("UI components", () => {
       diffContentWidth: 88,
       scrollRef,
       onStartUserNoteAtHunk: () => {},
-      separatorWidth: 84,
       width: 92,
       wrapLines: true,
     });
@@ -1364,7 +1361,6 @@ describe("UI components", () => {
             scrollRef,
             selectedHunkIndex: selectedHunk,
             selectedHunkRevealRequestId: selectedHunk,
-            separatorWidth: 92,
             width: 100,
             onStartUserNoteAtHunk: startUserNote,
           })}
@@ -1438,7 +1434,6 @@ describe("UI components", () => {
     const theme = resolveTheme("github-dark-default", null);
     const props = createDiffPaneProps(files, theme, {
       diffContentWidth: 88,
-      separatorWidth: 84,
       width: 92,
     });
     const setup = await testRender(<DiffPane {...props} />, {
@@ -1467,7 +1462,6 @@ describe("UI components", () => {
     const props = createDiffPaneProps(files, theme, {
       diffContentWidth: 88,
       selectedFileId: files[5]?.id,
-      separatorWidth: 84,
       width: 92,
     });
     const setup = await testRender(<DiffPane {...props} />, {
@@ -1509,7 +1503,6 @@ describe("UI components", () => {
       headerLabelWidth: 48,
       selectedFileId: "target",
       selectedHunkIndex: 1,
-      separatorWidth: 92,
       showHunkHeaders: false,
       width: 100,
     });
@@ -1560,7 +1553,6 @@ describe("UI components", () => {
             lineCursorAlignmentRequest: request,
             scrollRef,
             selectedHunkRevealRequestId: 0,
-            separatorWidth: 92,
             width: 100,
           })}
           onLineCursorsChange={(cursors) => {
@@ -1645,7 +1637,6 @@ describe("UI components", () => {
             scrollRef,
             selectedHunkIndex,
             selectedHunkRevealRequestId,
-            separatorWidth: 92,
             width: 100,
           })}
           onLineCursorsChange={(cursors) => {
@@ -1763,7 +1754,6 @@ describe("UI components", () => {
             selectedFileId: selection.fileId,
             selectedHunkIndex: selection.hunkIndex,
             selectedHunkRevealRequestId,
-            separatorWidth: 92,
             width: 100,
           })}
           onLineCursorsChange={(cursors) => {
@@ -1836,7 +1826,6 @@ describe("UI components", () => {
             selectedFileId: selection.fileId,
             selectedHunkIndex: selection.hunkIndex,
             selectedHunkRevealRequestId: 0,
-            separatorWidth: 92,
             width: 100,
           })}
           onViewportCenteredHunkChange={(fileId, hunkIndex) => {
@@ -1915,7 +1904,6 @@ describe("UI components", () => {
             selectedFileTopAlignRequestId: alignRequestId,
             selectedHunkIndex: selection.hunkIndex,
             selectedHunkRevealRequestId: 0,
-            separatorWidth: 92,
             width: 100,
           })}
           onViewportCenteredHunkChange={(fileId, hunkIndex) => {
@@ -1981,7 +1969,6 @@ describe("UI components", () => {
       headerLabelWidth: 48,
       headerStatsWidth: 16,
       scrollRef,
-      separatorWidth: 84,
       width: 92,
     });
     const setup = await testRender(<DiffPane {...props} />, {
@@ -2128,7 +2115,6 @@ describe("UI components", () => {
       headerLabelWidth: 48,
       headerStatsWidth: 16,
       scrollRef,
-      separatorWidth: 84,
       sourceStatusByFileId: { [firstFile.id]: sourceStatus },
       width: 92,
     });
@@ -2171,7 +2157,6 @@ describe("UI components", () => {
       headerLabelWidth: 48,
       headerStatsWidth: 16,
       scrollRef,
-      separatorWidth: 84,
       width: 92,
     });
     const setup = await testRender(<DiffPane {...props} />, {
@@ -2213,7 +2198,6 @@ describe("UI components", () => {
       headerLabelWidth: 48,
       headerStatsWidth: 16,
       scrollRef,
-      separatorWidth: 84,
       width: 92,
     });
     const setup = await testRender(<DiffPane {...props} />, {
@@ -2278,7 +2262,6 @@ describe("UI components", () => {
       headerStatsWidth: 16,
       scrollRef,
       selectedFileId: undefined,
-      separatorWidth: 84,
       showAgentNotes: true,
       width: 92,
     });
@@ -2367,7 +2350,6 @@ describe("UI components", () => {
             selectedFileId: "second",
             selectedHunkIndex: 0,
             selectedFileTopAlignRequestId,
-            separatorWidth: 84,
             width: 92,
           })}
         />
@@ -2408,7 +2390,6 @@ describe("UI components", () => {
         headerLabelWidth: 48,
         selectedFileId: "target",
         selectedHunkIndex: 1,
-        separatorWidth: 92,
         showHunkHeaders: false,
         width: 100,
       },
@@ -2446,7 +2427,6 @@ describe("UI components", () => {
         headerLabelWidth: 40,
         selectedFileId: "target",
         selectedHunkIndex: 1,
-        separatorWidth: 72,
         showHunkHeaders: false,
         width: 80,
         wrapLines: true,
@@ -2481,7 +2461,6 @@ describe("UI components", () => {
       headerLabelWidth: 48,
       selectedFileId: "target",
       selectedHunkIndex: 1,
-      separatorWidth: 92,
       width: 100,
     });
     const setup = await testRender(<DiffPane {...props} />, {
@@ -2520,7 +2499,6 @@ describe("UI components", () => {
       headerLabelWidth: 48,
       selectedFileId: "target",
       selectedHunkIndex: 1,
-      separatorWidth: 92,
       showAgentNotes: true,
       showHunkHeaders: false,
       width: 100,
@@ -2592,7 +2570,6 @@ describe("UI components", () => {
       headerLabelWidth: 48,
       selectedFileId: "deep-note",
       selectedHunkIndex: 1,
-      separatorWidth: 92,
       showAgentNotes: true,
       showHunkHeaders: true,
       width: 100,
@@ -2623,7 +2600,6 @@ describe("UI components", () => {
       selectedFileId: "deep-note",
       selectedHunkIndex: 1,
       scrollToNote: true,
-      separatorWidth: 92,
       showAgentNotes: true,
       showHunkHeaders: true,
       width: 100,
@@ -2686,7 +2662,6 @@ describe("UI components", () => {
       selectedFileId: file.id,
       selectedHunkIndex: 1,
       scrollToNote: true,
-      separatorWidth: 44,
       showAgentNotes: true,
       showHunkHeaders: true,
       width: 48,
@@ -2753,7 +2728,6 @@ describe("UI components", () => {
       selectedFileId: file.id,
       selectedHunkIndex: 1,
       scrollToNote: true,
-      separatorWidth: 44,
       showAgentNotes: true,
       showHunkHeaders: true,
       width: 48,
@@ -3402,7 +3376,6 @@ describe("UI components", () => {
         scrollRef={createRef()}
         selectedFileId="alpha"
         selectedHunkIndex={0}
-        separatorWidth={84}
         showAgentNotes={true}
         showLineNumbers={true}
         showHunkHeaders={true}
@@ -3467,7 +3440,6 @@ describe("UI components", () => {
         scrollRef={createRef()}
         selectedFileId="alpha"
         selectedHunkIndex={0}
-        separatorWidth={84}
         showAgentNotes={true}
         showLineNumbers={true}
         showHunkHeaders={true}
@@ -3526,7 +3498,6 @@ describe("UI components", () => {
         scrollRef={createRef()}
         selectedFileId="alpha"
         selectedHunkIndex={0}
-        separatorWidth={84}
         showAgentNotes={true}
         showLineNumbers={true}
         showHunkHeaders={true}
@@ -3855,7 +3826,6 @@ describe("UI components", () => {
         scrollRef={createRef()}
         selectedFileId={undefined}
         selectedHunkIndex={0}
-        separatorWidth={68}
         showAgentNotes={false}
         showLineNumbers={true}
         showHunkHeaders={true}
@@ -3885,7 +3855,6 @@ describe("UI components", () => {
         scrollRef={createRef()}
         selectedFileId="alpha"
         selectedHunkIndex={0}
-        separatorWidth={68}
         showAgentNotes={false}
         showLineNumbers={false}
         showHunkHeaders={true}
@@ -3918,7 +3887,6 @@ describe("UI components", () => {
         scrollRef={createRef()}
         selectedFileId="wrap"
         selectedHunkIndex={0}
-        separatorWidth={44}
         showAgentNotes={false}
         showLineNumbers={true}
         showHunkHeaders={true}
@@ -3951,7 +3919,6 @@ describe("UI components", () => {
         scrollRef={createRef()}
         selectedFileId="alpha"
         selectedHunkIndex={0}
-        separatorWidth={68}
         showAgentNotes={false}
         showLineNumbers={true}
         showHunkHeaders={false}
@@ -4554,7 +4521,6 @@ describe("UI components", () => {
       <DiffPane
         {...createDiffPaneProps(files, theme, {
           diffContentWidth: 92,
-          separatorWidth: 88,
           width: 96,
         })}
       />,
