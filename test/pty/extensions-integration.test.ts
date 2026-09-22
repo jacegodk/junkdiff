@@ -455,8 +455,9 @@ describe("PTY extensions", () => {
       });
       expect(prompt).toContain(".hunk/extensions");
       expect(prompt).toContain("Extensions run with your user permissions.");
-      // The extension has not run yet, so both files are still under review.
-      expect(prompt).toContain("beta.ts");
+      // The extension has not run yet, so both files are still under review. The prompt covers
+      // the middle of the screen, where junk centres a file's name, so count them in the header.
+      expect(prompt).toContain("2 files");
 
       await session.press("t");
 
@@ -992,7 +993,9 @@ describe("PTY extensions", () => {
       }
       expect(menu).not.toBeNull();
       expect(menu!).toMatch(/Toggle review triage\s+Y/);
-      expect(menu).toMatch(/Mark selected hunk…\s+x/);
+      // junk binds `x` itself (show more context), so the extension's second command keeps its
+      // menu entry and loses only the key.
+      expect(menu).toMatch(/Mark selected hunk…\s+│/);
       expect(menu).toContain("Center current review line");
       expect(menu).toContain("Set review focus…");
       expect(menu).toContain("Clear triage decisions");

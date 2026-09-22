@@ -143,13 +143,35 @@ export interface ResolvedExtensionPanes {
 /** Resolve pane identities and replacement ownership in registration order. */
 export function resolveExtensionPanes(
   registry: Pick<ExtensionRegistry, "panes">,
+  bundledExtensionIds: ReadonlySet<string> = new Set(),
 ): ResolvedExtensionPanes {
   const panes: RegisteredPane[] = [];
   const issues: ExtensionApplyIssue[] = [];
   const claimedKeys = new Set<string>();
   const claimedReplacementTargets = new Set<string>();
+  // junk: a pane compiled into the binary is a default, so one the reviewer installed takes the
+  // slot from it. Between two installed panes the first still wins, and it is still reported.
+  const yieldedByBuiltIn = new Set<RegisteredPane>();
+  const ownerByTarget = new Map<string, RegisteredPane>();
+  for (const registered of registry.panes) {
+    const target = registered.pane.replaces;
+    if (target === undefined) continue;
+    const owner = ownerByTarget.get(target);
+    if (owner === undefined) {
+      ownerByTarget.set(target, registered);
+      continue;
+    }
+    if (
+      bundledExtensionIds.has(owner.extensionId) &&
+      !bundledExtensionIds.has(registered.extensionId)
+    ) {
+      yieldedByBuiltIn.add(owner);
+      ownerByTarget.set(target, registered);
+    }
+  }
 
   for (const registered of registry.panes) {
+    if (yieldedByBuiltIn.has(registered)) continue;
     const key = paneKey(registered);
     if (claimedKeys.has(key)) {
       issues.push({

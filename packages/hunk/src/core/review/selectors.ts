@@ -636,6 +636,21 @@ export function selectReviewSourceTotalLines(
   return status?.kind === "loaded" ? normalizedReviewSourceLines(status.text).length : undefined;
 }
 
+/** junk: whether one file is showing any unchanged context a gap was hiding. */
+export function selectReviewFileHasOpenGap(
+  state: Pick<ReviewState, "expandedGaps">,
+  fileKey: string,
+): boolean {
+  return state.expandedGaps.some(
+    (gap) => gap.fileKey === fileKey && (gap.expanded || gap.reveal !== undefined),
+  );
+}
+
+/** junk: whether any file in the review is showing unchanged context. */
+export function selectReviewHasOpenGap(state: Pick<ReviewState, "expandedGaps">): boolean {
+  return state.expandedGaps.some((gap) => gap.expanded || gap.reveal !== undefined);
+}
+
 /** junk: select the partly revealed gaps of every file, keyed by gap id. */
 export function selectRevealedGapsByFileKey(
   state: Pick<ReviewState, "expandedGaps">,

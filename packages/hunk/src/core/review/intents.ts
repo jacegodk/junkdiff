@@ -43,6 +43,7 @@ import {
   reviewNoteHasDescendants,
   selectActiveStoredReviewNote,
   selectReviewSourceTotalLines,
+  selectVisibleReviewFiles,
   selectNavigableStoredReviewNotes,
   selectNormalizedSelection,
   selectReviewFileByKey,
@@ -153,6 +154,10 @@ export type ReviewIntent =
   | { type: "expansion/toggle"; fileKey: string; gapId: string }
   /** junk: show `delta` more (or, negative, fewer) unchanged lines on both sides of one hunk. */
   | { type: "expansion/reveal-around"; fileKey: string; hunkIndex: number; delta: number }
+  /** junk: open or close every gap of one file, so it reads as the whole file or as a diff. */
+  | { type: "expansion/set-file"; fileKey: string; expanded: boolean }
+  /** junk: the same across every file the review is showing. */
+  | { type: "expansion/set-all"; expanded: boolean }
   /** junk: show `delta` more (or fewer) of one gap's lines, from its start or its end. */
   | {
       type: "expansion/reveal-gap";
@@ -192,6 +197,8 @@ export const REVIEW_INTENT_TYPES = [
   "expansion/toggle",
   "expansion/reveal-around",
   "expansion/reveal-gap",
+  "expansion/set-file",
+  "expansion/set-all",
 ] as const satisfies readonly ReviewIntent["type"][];
 
 export type ReviewIntentType = (typeof REVIEW_INTENT_TYPES)[number];
@@ -271,6 +278,14 @@ export interface ReviewExpansionRevealedOutcome {
   anyOpen: boolean;
 }
 
+/** junk: what an open-or-close of whole files settled on, and whose source must be read. */
+export interface ReviewExpansionFilesOutcome {
+  type: "expansion/files-set";
+  expanded: boolean;
+  /** Files now showing context that only their source can fill. */
+  sources: { fileKey: string; side: ReviewSide }[];
+}
+
 export type ReviewIntentOutcome =
   | ReviewSelectionChangedOutcome
   | ReviewDraftStartedOutcome
@@ -279,7 +294,8 @@ export type ReviewIntentOutcome =
   | ReviewNoteRemovedOutcome
   | ReviewNotesClearedOutcome
   | ReviewExpansionToggledOutcome
-  | ReviewExpansionRevealedOutcome;
+  | ReviewExpansionRevealedOutcome
+  | ReviewExpansionFilesOutcome;
 
 /**
  * What each intent reports back.
@@ -310,6 +326,8 @@ export interface ReviewIntentOutcomeByType {
   "expansion/toggle": ReviewExpansionToggledOutcome;
   "expansion/reveal-around": ReviewExpansionRevealedOutcome;
   "expansion/reveal-gap": ReviewExpansionRevealedOutcome;
+  "expansion/set-file": ReviewExpansionFilesOutcome;
+  "expansion/set-all": ReviewExpansionFilesOutcome;
 }
 
 export interface ReviewIntentPlan {
@@ -676,6 +694,66 @@ function planOneGapReveal(
     anyOpen: reveal.head + reveal.tail > 0,
     actions: [{ type: "expansion/reveal", fileKey, gapId, reveal }],
   };
+}
+
+/**
+ * junk: open or close every gap of the named files.
+ *
+ * Opening one is what "show me the whole file" means: each collapsed gap is expanded, and a
+ * partial patch also gets the gap after its last hunk, which only exists once the file's source
+ * has been read. Closing puts every gap back, partial reveals included.
+ */
+function planExpansionSetFiles(
+  state: ReviewState,
+  files: readonly ReviewFileV1[],
+  expanded: boolean,
+): ReviewIntentPlan {
+  const actions: ReviewAction[] = [];
+  const sources: { fileKey: string; side: ReviewSide }[] = [];
+
+  for (const file of files) {
+    if (file.sourceIdentity === undefined || file.hunks.length === 0) continue;
+    const source = reviewGapSourceForFile(file, selectReviewSourceTotalLines(state, file.key));
+    const gapIds: string[] = [];
+    for (const [hunkIndex] of file.hunks.entries()) {
+      if (reviewLeadingGap(source, hunkIndex)) gapIds.push(reviewGapId("before", hunkIndex));
+    }
+    const trailing = reviewTrailingGap(source);
+    if (trailing) gapIds.push(reviewGapId("trailing", trailing.hunkIndex));
+    else if (expanded && file.flags.partial) {
+      // The tail is only addressable once the source is read; record the wish and load it.
+      gapIds.push(reviewGapId("trailing", file.hunks.length - 1));
+    }
+    if (gapIds.length === 0) continue;
+
+    let touched = false;
+    for (const gapId of gapIds) {
+      const current = state.expandedGaps.find(
+        (gap) => gap.fileKey === file.key && gap.gapId === gapId,
+      );
+      if (expanded) {
+        if (current?.expanded) continue;
+        actions.push({ type: "expansion/toggle", fileKey: file.key, gapId, expanded: true });
+      } else {
+        if (!current?.expanded && current?.reveal === undefined) continue;
+        actions.push({ type: "expansion/toggle", fileKey: file.key, gapId, expanded: false });
+        if (current?.reveal) {
+          actions.push({
+            type: "expansion/reveal",
+            fileKey: file.key,
+            gapId,
+            reveal: { head: 0, tail: 0 },
+          });
+        }
+      }
+      touched = true;
+    }
+    if (touched && expanded) {
+      sources.push({ fileKey: file.key, side: reviewExpansionSide(file.changeKind) });
+    }
+  }
+
+  return { actions, outcome: { type: "expansion/files-set", expanded, sources } };
 }
 
 /** junk: grow or shrink one named gap from one end, for the arrows a gap row draws. */
@@ -1113,6 +1191,14 @@ export function planReviewIntent(
       return planExpansionRevealAround(state, intent);
     case "expansion/reveal-gap":
       return planExpansionRevealGap(state, intent);
+    case "expansion/set-file":
+      return planExpansionSetFiles(
+        state,
+        [requireReviewFile(state, intent.fileKey)],
+        intent.expanded,
+      );
+    case "expansion/set-all":
+      return planExpansionSetFiles(state, selectVisibleReviewFiles(state), intent.expanded);
     case "notes/create-user":
       return planUserNoteCreation(state, facts);
     case "notes/update-user":

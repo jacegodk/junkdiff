@@ -1421,6 +1421,8 @@ export function App({
         toggleFocusArea,
         toggleGapForSelectedHunk: review.toggleSelectedHunkGap,
         revealAroundSelectedHunk: review.revealAroundSelectedHunk,
+        toggleWholeSelectedFile: () => review.toggleWholeFile("file"),
+        toggleWholeFiles: () => review.toggleWholeFile("review"),
         toggleHelp,
         toggleHunkHeaders,
         toggleLineNumbers,

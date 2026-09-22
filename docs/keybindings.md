@@ -123,7 +123,9 @@ Review and shared commands:
 | `hunk.review.deleteActiveNote`                 | Delete active review note                             | `D`                          |
 | `hunk.review.editActiveNote`                   | Edit active review note                               | `E`                          |
 | `hunk.review.editSelectedFile`                 | Open the selected file in your editor                 | `e`                          |
+| `hunk.review.expandAllFiles`                   | Show every file whole                                 | `A`                          |
 | `hunk.review.expandAroundHunk`                 | Show 10 more unchanged lines around the selected hunk | `x`                          |
+| `hunk.review.expandFile`                       | Show the whole selected file                          | `F`                          |
 | `hunk.review.focusFilter`                      | Focus the file filter                                 | _(none)_                     |
 | `hunk.review.halfPageDown`                     | Scroll down half a page                               | `d`, `ctrl+d`                |
 | `hunk.review.halfPageUp`                       | Scroll up half a page                                 | `u`, `ctrl+u`                |

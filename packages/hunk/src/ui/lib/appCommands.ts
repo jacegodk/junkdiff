@@ -159,6 +159,10 @@ export interface BuildAppCommandsOptions {
   toggleGapForSelectedHunk: () => void;
   /** junk: show (`count` > 0) or hide unchanged lines around the selected hunk. */
   revealAroundSelectedHunk?: (count: number) => void;
+  /** junk: open or close every gap of the selected file. */
+  toggleWholeSelectedFile: () => void;
+  /** junk: open or close every gap of every visible file. */
+  toggleWholeFiles: () => void;
   toggleHelp: () => void;
   toggleHunkHeaders: () => void;
   toggleLineNumbers: () => void;
@@ -296,6 +300,8 @@ function builtinCommandHandlers(
     "hunk.view.toggleHunkHeaders": { run: () => options.toggleHunkHeaders() },
     "hunk.view.toggleCopyDecorations": { run: () => options.toggleCopyDecorations() },
     "hunk.review.toggleHunkGap": { run: () => options.toggleGapForSelectedHunk() },
+    "hunk.review.expandFile": { run: () => options.toggleWholeSelectedFile() },
+    "hunk.review.expandAllFiles": { run: () => options.toggleWholeFiles() },
     "hunk.review.expandAroundHunk": {
       run: (_key, count) => options.revealAroundSelectedHunk?.(count),
     },
@@ -407,6 +413,8 @@ const NOOP_COMMAND_OPTIONS: BuildAppCommandsOptions = (() => {
     toggleCopyDecorations: noop,
     toggleFocusArea: noop,
     toggleGapForSelectedHunk: noop,
+    toggleWholeSelectedFile: noop,
+    toggleWholeFiles: noop,
     toggleHelp: noop,
     toggleHunkHeaders: noop,
     toggleLineNumbers: noop,

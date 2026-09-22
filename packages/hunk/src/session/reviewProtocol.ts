@@ -509,6 +509,12 @@ const ACTION_PARSERS: Record<ReviewIntentType, (record: Record<string, unknown>)
     hasExactKeys(record, ["type", "fileKey", "gapId"]) &&
     isIdentifier(record.fileKey) &&
     isIdentifier(record.gapId),
+  "expansion/set-file": (record) =>
+    hasExactKeys(record, ["type", "fileKey", "expanded"]) &&
+    isIdentifier(record.fileKey) &&
+    typeof record.expanded === "boolean",
+  "expansion/set-all": (record) =>
+    hasExactKeys(record, ["type", "expanded"]) && typeof record.expanded === "boolean",
   "expansion/reveal-gap": (record) =>
     hasExactKeys(record, ["type", "fileKey", "gapId", "side", "delta"]) &&
     isIdentifier(record.fileKey) &&

@@ -969,6 +969,71 @@ describe("notes/start-draft", () => {
     ).toThrow(ReviewIntentPlanningError);
   });
 
+  test("junk: showing a file whole opens every gap it has, and closing puts them all back", () => {
+    // Expansion needs a source to read, so the file states one.
+    const withSource = () =>
+      createTestReviewState([{ key: "alpha", sourceIdentity: "sha" }, "beta"]);
+    // The fixture's alpha has one gap, before hunk 1.
+    const open = planReviewIntent(withSource(), {
+      type: "expansion/set-file",
+      fileKey: "alpha",
+      expanded: true,
+    });
+    expect(open.actions).toEqual([
+      { type: "expansion/toggle", fileKey: "alpha", gapId: "before:1", expanded: true },
+    ]);
+    expect(open.outcome).toEqual({
+      type: "expansion/files-set",
+      expanded: true,
+      sources: [{ fileKey: "alpha", side: "new" }],
+    });
+
+    // Closing takes back both a full expansion and a partial reveal.
+    const opened = open.actions.reduce(reduceReviewState, withSource());
+    const shut = planReviewIntent(opened, {
+      type: "expansion/set-file",
+      fileKey: "alpha",
+      expanded: false,
+    });
+    expect(shut.actions).toEqual([
+      { type: "expansion/toggle", fileKey: "alpha", gapId: "before:1", expanded: false },
+    ]);
+    const revealed = reduceReviewState(withSource(), {
+      type: "expansion/reveal",
+      fileKey: "alpha",
+      gapId: "before:1",
+      reveal: { head: 3, tail: 0 },
+    });
+    expect(
+      planReviewIntent(revealed, { type: "expansion/set-file", fileKey: "alpha", expanded: false })
+        .actions,
+    ).toEqual([
+      { type: "expansion/toggle", fileKey: "alpha", gapId: "before:1", expanded: false },
+      {
+        type: "expansion/reveal",
+        fileKey: "alpha",
+        gapId: "before:1",
+        reveal: { head: 0, tail: 0 },
+      },
+    ]);
+
+    // Nothing to do is an empty plan rather than a churn of actions.
+    expect(
+      planReviewIntent(opened, { type: "expansion/set-file", fileKey: "alpha", expanded: true })
+        .actions,
+    ).toEqual([]);
+  });
+
+  test("junk: showing every file whole covers the visible stream", () => {
+    const plan = planReviewIntent(
+      createTestReviewState([{ key: "alpha", sourceIdentity: "sha" }, "beta"]),
+      { type: "expansion/set-all", expanded: true },
+    );
+    const fileKeys = new Set(plan.actions.map((action) => "fileKey" in action && action.fileKey));
+    expect(fileKeys.size).toBeGreaterThan(0);
+    expect(plan.outcome).toMatchObject({ type: "expansion/files-set", expanded: true });
+  });
+
   test("junk: one gap can be revealed from either end, and rejects a gap that is not there", () => {
     const plan = planReviewIntent(createTestReviewState(), {
       type: "expansion/reveal-gap",

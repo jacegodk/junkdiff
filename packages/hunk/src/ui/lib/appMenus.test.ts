@@ -61,6 +61,8 @@ function createTestCommands(overrides: Partial<BuildAppCommandsOptions> = {}) {
     toggleAgentNotes: noop,
     toggleHandledNotes: noop,
     toggleUserNotes: noop,
+    toggleWholeSelectedFile: noop,
+    toggleWholeFiles: noop,
     toggleCopyDecorations: record("toggleCopyDecorations"),
     toggleFocusArea: noop,
     toggleGapForSelectedHunk: noop,

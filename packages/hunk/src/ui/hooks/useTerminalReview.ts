@@ -274,6 +274,8 @@ export interface TerminalReview {
   revealAroundSelectedHunk: (count: number) => void;
   /** junk: show `delta` more of one gap's lines, measured from its start (head) or end (tail). */
   revealGapSide: (fileId: string, gapKey: string, side: "head" | "tail", delta: number) => void;
+  /** junk: open or close every gap of the selected file, or of every visible file. */
+  toggleWholeFile: (scope: "file" | "review") => void;
   visibleFiles: DiffFile[];
   addLiveComment: (
     input: CommentToolInput,
@@ -1184,6 +1186,27 @@ export function useTerminalReview({
     [fileByKey, lowerCommand, runIntent, startSourceLoad],
   );
 
+  /**
+   * junk: open or close every gap of the selected file, or of the whole review.
+   *
+   * Showing a file whole is the same expansion the gap rows do, so the diff keeps its rows,
+   * its notes and its cursor; only the unchanged lines between the hunks arrive.
+   */
+  const toggleWholeFile = useCallback(
+    (scope: "file" | "review") => {
+      const intent = lowerCommand(
+        scope === "file" ? "hunk.review.expandFile" : "hunk.review.expandAllFiles",
+      );
+      if (intent?.type !== "expansion/set-file" && intent?.type !== "expansion/set-all") return;
+      const settled = runIntent(intent);
+      for (const source of settled.sources) {
+        const file = fileByKey.get(source.fileKey);
+        if (file?.sourceFetcher) startSourceLoad(file, source.fileKey, source.side);
+      }
+    },
+    [fileByKey, lowerCommand, runIntent, startSourceLoad],
+  );
+
   /** junk: grow one gap from one end, for the arrows a collapsed row draws. */
   const revealGapSide = useCallback(
     (fileId: string, gapKey: string, side: "head" | "tail", delta: number) => {
@@ -1886,6 +1909,7 @@ export function useTerminalReview({
     toggleSelectedHunkGap,
     revealAroundSelectedHunk,
     revealGapSide,
+    toggleWholeFile,
     visibleFiles,
     addAgentLineHighlight,
     addLiveComment,

@@ -25,9 +25,14 @@ export interface SessionPane {
 
 /** Compose bundled UI panes before user panes, preserving stable keys and replacement defaults. */
 export function buildSessionPanes(extensions: ExtensionLoadResult | undefined): SessionPane[] {
-  const all = resolveExtensionPanes({
-    panes: [...getBundledUIRegistry().panes, ...(extensions?.registry.panes ?? [])],
-  }).panes;
+  const all = resolveExtensionPanes(
+    { panes: [...getBundledUIRegistry().panes, ...(extensions?.registry.panes ?? [])] },
+    new Set(
+      (extensions?.loaded ?? [])
+        .filter((entry) => entry.origin === "bundled")
+        .map((entry) => entry.id),
+    ),
+  ).panes;
   const replacements = new Set(all.map((entry) => entry.pane.replaces).filter(Boolean));
   return all.map((registered) => {
     const key = paneKey(registered);

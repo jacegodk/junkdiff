@@ -33,7 +33,9 @@ import {
   selectActiveStoredReviewNote,
   selectActiveReplyableReviewNoteId,
   selectNormalizedSelection,
+  selectReviewFileHasOpenGap,
   selectReviewGapForSelection,
+  selectReviewHasOpenGap,
 } from "../review/selectors";
 import type { ReviewState } from "../review/state";
 import type { ReviewNoteTargetV1 } from "../review/types";
@@ -70,7 +72,10 @@ export type AppCommandReviewEffect =
   /** Flip the gap the shared policy says this selection reaches. */
   | { kind: "expansion/toggle-selected-gap" }
   /** junk: show or hide unchanged lines on both sides of the selected hunk, 10 per count. */
-  | { kind: "expansion/reveal-around-selected"; direction: 1 | -1 };
+  | { kind: "expansion/reveal-around-selected"; direction: 1 | -1 }
+  /** junk: open or close every gap of the selected file, or of every visible file. */
+  | { kind: "expansion/toggle-file" }
+  | { kind: "expansion/toggle-all-files" };
 
 /** junk: unchanged lines one `x` / `X` press reveals or hides on each side of the hunk. */
 export const CONTEXT_REVEAL_STEP = 10;
@@ -566,6 +571,26 @@ const BUILTIN_COMMANDS = [
     closesMenu: true,
   },
   {
+    id: "hunk.review.expandFile",
+    title: "Show the whole selected file",
+    category: "review",
+    defaultKeys: ["F"],
+    locus: "semantic",
+    review: { kind: "expansion/toggle-file" },
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
+    id: "hunk.review.expandAllFiles",
+    title: "Show every file whole",
+    category: "review",
+    defaultKeys: ["A"],
+    locus: "semantic",
+    review: { kind: "expansion/toggle-all-files" },
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
     id: "hunk.review.expandAroundHunk",
     title: "Show 10 more unchanged lines around the selected hunk",
     category: "review",
@@ -801,6 +826,17 @@ export function lowerAppCommandToReviewIntent(
         handled: !entry.note.tags?.includes("handled"),
       };
     }
+    case "expansion/toggle-file": {
+      const { fileKey } = selectNormalizedSelection(state);
+      if (fileKey === null) return undefined;
+      return {
+        type: "expansion/set-file",
+        fileKey,
+        expanded: !selectReviewFileHasOpenGap(state, fileKey),
+      };
+    }
+    case "expansion/toggle-all-files":
+      return { type: "expansion/set-all", expanded: !selectReviewHasOpenGap(state) };
     case "expansion/reveal-around-selected": {
       const { fileKey, hunkIndex } = selectNormalizedSelection(state);
       if (fileKey === null) return undefined;

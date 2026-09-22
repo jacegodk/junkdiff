@@ -106,6 +106,9 @@ async function launchWithExtension(repo: string, extPath: string): Promise<AppBo
   bootstrap.extensions = await loadStartupExtensions({
     extensions: { enabled: true, paths: [], repoPaths: [], extensionConfigs: {} },
     cwd: repo,
+    // An empty config home, so what the developer has installed cannot join this review and
+    // take a key the probe or the host expects.
+    env: { XDG_CONFIG_HOME: createTempDir("hunk-ext-nav-config-") } as NodeJS.ProcessEnv,
     cliExtensionPaths: [extPath],
   });
   expect(bootstrap.extensions.issues).toEqual([]);

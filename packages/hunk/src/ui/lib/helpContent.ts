@@ -114,6 +114,10 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
         description: "toggle / more / less unchanged lines",
       },
       {
+        commandIds: ["hunk.review.expandFile", "hunk.review.expandAllFiles"],
+        description: "show this file / every file whole",
+      },
+      {
         commandIds: [
           "hunk.view.toggleLineNumbers",
           "hunk.view.toggleLineWrap",

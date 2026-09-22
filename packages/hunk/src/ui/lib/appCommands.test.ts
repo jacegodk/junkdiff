@@ -68,6 +68,8 @@ function createTestCommands(resolvedKeys?: ResolvedCommandKeys) {
     toggleAgentNotes: record("toggleAgentNotes"),
     toggleHandledNotes: record("toggleHandledNotes"),
     toggleUserNotes: record("toggleUserNotes"),
+    toggleWholeSelectedFile: record("toggleWholeSelectedFile"),
+    toggleWholeFiles: record("toggleWholeFiles"),
     toggleCopyDecorations: record("toggleCopyDecorations"),
     toggleFocusArea: record("toggleFocusArea"),
     toggleGapForSelectedHunk: record("toggleGapForSelectedHunk"),

@@ -20,8 +20,6 @@ export interface SearchState {
   /** Index into `hits` of the current pick; -1 when there are none. */
   currentIndex: number;
   prompt: { open: boolean; draft: string };
-  /** Ids of files currently showing the full-file view, toggled by the `F` command. */
-  fullViewFileIds: ReadonlySet<string>;
 }
 
 const initialState: SearchState = {
@@ -29,13 +27,10 @@ const initialState: SearchState = {
   hits: [],
   currentIndex: -1,
   prompt: { open: false, draft: "" },
-  fullViewFileIds: new Set(),
 };
 
 let state: SearchState = initialState;
 const listeners = new Set<() => void>();
-/** Hits reported by the full-file view's layout pass, one entry per file currently showing it. */
-let documentHits = new Map<string, readonly SearchHit[]>();
 
 function publish(patch: Partial<SearchState>) {
   state = { ...state, ...patch };
@@ -133,24 +128,6 @@ export function scanPatchHits(
   return hits;
 }
 
-/** Scan every line of a full-view file's new-side document for `query`. Empty query yields no hits. */
-export function scanDocumentHits(
-  file: Pick<ExtensionDiffFile, "id" | "path">,
-  document: string,
-  query: string,
-): SearchHit[] {
-  if (query === "") return [];
-  const hits: SearchHit[] = [];
-  const lines = document.replaceAll("\r\n", "\n").split("\n");
-  if (lines[lines.length - 1] === "") lines.pop();
-  lines.forEach((text, index) => {
-    for (const range of findLineHits(text, query)) {
-      hits.push({ fileId: file.id, filePath: file.path, side: "new", line: index + 1, range });
-    }
-  });
-  return hits;
-}
-
 /** Open the prompt with a prefilled draft. */
 export function openPrompt(initial: string): void {
   publish({ prompt: { open: true, draft: initial } });
@@ -178,46 +155,13 @@ export function setQuery(query: string): void {
   publish({ query, hits: [], currentIndex: -1 });
 }
 
-/** Whether two hit lists address the same (side, line, range) locations, in the same order. */
-function sameHitRanges(a: readonly SearchHit[], b: readonly SearchHit[]): boolean {
-  if (a.length !== b.length) return false;
-  return a.every((hit, i) => sameHitLocation(hit, b[i]!));
-}
-
 /**
- * Store the full-file view's reported hits for one file; the caller rebuilds hits next.
- * Returns whether the stored hits actually changed (by side/line/range), so a caller that only
- * wants to rebuild the merged list when it would actually change (the view's `layout` pass) can
- * skip a redundant rebuild.
+ * Hook for the file-list replacement that follows `changeset_loaded`/`session_reload`.
+ *
+ * Nothing is keyed by file id any more, so there is nothing to drop; the call site stays so a
+ * later per-file cache has one obvious place to be pruned from.
  */
-export function setDocumentHits(fileId: string, hits: readonly SearchHit[]): boolean {
-  const changed = !sameHitRanges(documentHits.get(fileId) ?? [], hits);
-  documentHits.set(fileId, hits);
-  publish({});
-  return changed;
-}
-
-/** Set whether a file shows the full-file view for search-scanning purposes. */
-export function setFullViewFile(fileId: string, active: boolean): void {
-  const next = new Set(state.fullViewFileIds);
-  if (active) next.add(fileId);
-  else next.delete(fileId);
-  publish({ fullViewFileIds: next });
-}
-
-/**
- * Drop full-view membership and reported document hits for files no longer in `ids`, after
- * `changeset_loaded`/`session_reload` replace the file list wholesale (hunk renumbers ids on
- * every reload, so anything keyed by a prior generation's id is otherwise a permanent leak).
- */
-export function pruneSearchFiles(ids: Iterable<string>): void {
-  const keep = new Set(ids);
-  for (const id of documentHits.keys()) {
-    if (!keep.has(id)) documentHits.delete(id);
-  }
-  const nextFullView = new Set([...state.fullViewFileIds].filter((id) => keep.has(id)));
-  if (nextFullView.size !== state.fullViewFileIds.size) publish({ fullViewFileIds: nextFullView });
-}
+export function pruneSearchFiles(_ids: Iterable<string>): void {}
 
 /** Clamp a raw index into `[0, length - 1]`, or -1 when there is nothing to point at. */
 function clampIndex(index: number, length: number): number {
@@ -233,9 +177,8 @@ export interface RebuildHitsOptions {
 
 /**
  * Rebuild the merged hit list from the given visible files, in order.
- * Skips any file in `options.excludeFileIds`. Uses reported document hits for files in
- * `fullViewFileIds`, otherwise scans the patch. Keeps pointing at the current hit if it still
- * exists in the new list, else clamps the index.
+ * Skips any file in `options.excludeFileIds` and scans each remaining file's patch. Keeps
+ * pointing at the current hit if it still exists in the new list, else clamps the index.
  */
 export function rebuildHits(
   visibleFiles: readonly ExtensionDiffFile[],
@@ -245,8 +188,7 @@ export function rebuildHits(
   const nextHits: SearchHit[] = [];
   for (const file of visibleFiles) {
     if (options?.excludeFileIds?.has(file.id)) continue;
-    if (state.fullViewFileIds.has(file.id)) nextHits.push(...(documentHits.get(file.id) ?? []));
-    else nextHits.push(...scanPatchHits(file, state.query));
+    nextHits.push(...scanPatchHits(file, state.query));
   }
   const pinnedIndex = pinned ? nextHits.findIndex((hit) => sameHit(hit, pinned)) : -1;
   const nextIndex =
@@ -283,6 +225,5 @@ export function clearSearch(): void {
 /** Reset module state between tests. */
 export function resetSearchForTests(): void {
   state = initialState;
-  documentHits = new Map();
   listeners.clear();
 }

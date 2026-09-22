@@ -58,6 +58,43 @@ function createRepo() {
 }
 
 describe("junk: context around the selected hunk", () => {
+  test("F shows the whole file and F again puts the diff back", async () => {
+    const dir = createRepo();
+    const bootstrap = await loadAppBootstrap(
+      { kind: "vcs", staged: false, options: { mode: "unified", excludeUntracked: true } },
+      { cwd: dir, vcsCatalog: getBundledVcsCatalog() },
+    );
+    const setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 120, height: 80 });
+    try {
+      let frame = await waitForFrame(setup, (f) => f.includes("16 unchanged lines"));
+      expect(frame).not.toContain("line01 = 1;");
+
+      await act(async () => {
+        await setup.mockInput.typeText("F");
+      });
+      // Every gap opens, including the one after the last hunk that only the source knows.
+      frame = await waitForFrame(setup, (f) => f.includes("line01 = 1;"));
+      expect(frame).toContain("line01 = 1;");
+      expect(frame).toContain("line35 = 35;");
+      // Every gap row now offers to hide again, the one after the last hunk included.
+      expect(frame).toContain("Hide 16 unchanged lines");
+      expect(frame).toContain("Hide 7 unchanged lines");
+      expect(frame).toContain("line60 = 60;");
+
+      await act(async () => {
+        await setup.mockInput.typeText("F");
+      });
+      frame = await waitForFrame(setup, (f) => !f.includes("Hide 16 unchanged lines"));
+      expect(frame).toContain("16 unchanged lines");
+      expect(frame).not.toContain("line01 = 1;");
+    } finally {
+      await act(async () => {
+        setup.renderer.destroy();
+      });
+      await removeTestDirectory(dir);
+    }
+  });
+
   test("x shows 10 more unchanged lines on both sides of the hunk, X hides them again", async () => {
     const dir = createRepo();
     const bootstrap = await loadAppBootstrap(

@@ -244,6 +244,34 @@ describe("extension panes", () => {
     expect(issues).toEqual([]);
   });
 
+  test("junk: an installed pane takes a replaced slot from a pane compiled into the binary", () => {
+    const result = createEmptyExtensionLoadResult();
+    const builtIn = { id: "files", component: () => null, replaces: "hunk:files" };
+    const installed = { id: "files", component: () => null, replaces: "hunk:files" };
+    result.registry.panes.push(
+      { extensionId: "hunk-viewed", pane: builtIn },
+      { extensionId: "user-tree", pane: installed },
+    );
+
+    const { panes, issues } = resolveExtensionPanes(result.registry, new Set(["hunk-viewed"]));
+
+    // The bundled default steps aside without a complaint; it is a default, not a conflict.
+    expect(panes).toEqual([{ extensionId: "user-tree", pane: installed }]);
+    expect(issues).toEqual([]);
+
+    // Two installed panes still settle first-wins, and the loser is still reported.
+    const both = createEmptyExtensionLoadResult();
+    const first = { id: "files", component: () => null, replaces: "hunk:files" };
+    const second = { id: "files", component: () => null, replaces: "hunk:files" };
+    both.registry.panes.push(
+      { extensionId: "one", pane: first },
+      { extensionId: "two", pane: second },
+    );
+    const settled = resolveExtensionPanes(both.registry, new Set(["hunk-viewed"]));
+    expect(settled.panes).toEqual([{ extensionId: "one", pane: first }]);
+    expect(settled.issues).toHaveLength(1);
+  });
+
   test("keeps every distinct pane and reports duplicate keys", () => {
     const result = createEmptyExtensionLoadResult();
     const tree = { id: "tree", component: () => null };

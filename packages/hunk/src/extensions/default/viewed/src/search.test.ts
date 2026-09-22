@@ -8,13 +8,9 @@ import {
   findLineHits,
   getSearchState,
   openPrompt,
-  pruneSearchFiles,
   rebuildHits,
   resetSearchForTests,
-  scanDocumentHits,
   scanPatchHits,
-  setDocumentHits,
-  setFullViewFile,
   setQuery,
   stepHit,
 } from "./search";
@@ -84,23 +80,6 @@ describe("scanPatchHits", () => {
   });
 });
 
-describe("scanDocumentHits", () => {
-  test("scans every line of the new-side document", () => {
-    const f = { id: "f1", path: "a.ts" };
-    const document = ["one foo", "two", "three foo foo"].join("\n") + "\n";
-    expect(scanDocumentHits(f, document, "foo")).toEqual([
-      { fileId: "f1", filePath: "a.ts", side: "new", line: 1, range: [4, 7] },
-      { fileId: "f1", filePath: "a.ts", side: "new", line: 3, range: [6, 9] },
-      { fileId: "f1", filePath: "a.ts", side: "new", line: 3, range: [10, 13] },
-    ]);
-  });
-
-  test("empty query yields no hits", () => {
-    const f = { id: "f1", path: "a.ts" };
-    expect(scanDocumentHits(f, "foo\n", "")).toEqual([]);
-  });
-});
-
 describe("prompt draft ops", () => {
   test("openPrompt, editDraft, closePrompt", () => {
     openPrompt("start");
@@ -131,90 +110,18 @@ describe("setQuery", () => {
   });
 });
 
-describe("setFullViewFile", () => {
-  test("sets membership directly instead of toggling", () => {
-    setFullViewFile("f1", true);
-    expect(getSearchState().fullViewFileIds.has("f1")).toBe(true);
-    setFullViewFile("f1", true); // idempotent
-    expect(getSearchState().fullViewFileIds.has("f1")).toBe(true);
-    setFullViewFile("f1", false);
-    expect(getSearchState().fullViewFileIds.has("f1")).toBe(false);
-  });
-});
-
-describe("setDocumentHits", () => {
-  test("returns true the first time a file reports hits", () => {
-    expect(
-      setDocumentHits("f1", [
-        { fileId: "f1", filePath: "a.ts", side: "new", line: 1, range: [0, 3] },
-      ]),
-    ).toBe(true);
-  });
-
-  test("returns false when the reported hits are the same (by side/line/range) as before", () => {
-    const hits = [
-      { fileId: "f1", filePath: "a.ts", side: "new" as const, line: 1, range: [0, 3] as const },
-    ];
-    setDocumentHits("f1", hits);
-    // A fresh array with the same side/line/range content is not a change.
-    expect(setDocumentHits("f1", [{ ...hits[0]! }])).toBe(false);
-  });
-
-  test("returns true when the count or any hit's side/line/range differs", () => {
-    setDocumentHits("f1", [
-      { fileId: "f1", filePath: "a.ts", side: "new", line: 1, range: [0, 3] },
-    ]);
-    expect(setDocumentHits("f1", [])).toBe(true);
-    setDocumentHits("f1", [
-      { fileId: "f1", filePath: "a.ts", side: "new", line: 1, range: [0, 3] },
-    ]);
-    expect(
-      setDocumentHits("f1", [
-        { fileId: "f1", filePath: "a.ts", side: "new", line: 2, range: [0, 3] },
-      ]),
-    ).toBe(true);
-  });
-});
-
-describe("pruneSearchFiles", () => {
-  test("drops fullViewFileIds and document hits for files no longer in the changeset", () => {
-    setFullViewFile("a", true);
-    setFullViewFile("b", true);
-    setDocumentHits("a", [{ fileId: "a", filePath: "a.ts", side: "new", line: 1, range: [0, 3] }]);
-    setDocumentHits("b", [{ fileId: "b", filePath: "b.ts", side: "new", line: 1, range: [0, 3] }]);
-
-    pruneSearchFiles(["b"]); // only "b" survives the reload
-
-    expect(getSearchState().fullViewFileIds).toEqual(new Set(["b"]));
-    // "a"'s document hits are gone: rebuilding with "a" back in the visible set (a fresh object,
-    // as a reload would give it) reports no full-view hits for it even though it is still marked.
-    setFullViewFile("a", true);
-    rebuildHits([file("a", "a.ts", "@@ -1,1 +1,1 @@\n foo\n")]);
-    expect(getSearchState().hits).toEqual([]);
-  });
-
-  test("is a no-op (no republish) when nothing needs pruning", () => {
-    setFullViewFile("a", true);
-    const before = getSearchState();
-    pruneSearchFiles(["a", "b"]);
-    expect(getSearchState()).toBe(before);
-  });
-});
-
 describe("rebuildHits", () => {
   const fileA = file("a", "a.ts", ["@@ -1,1 +1,1 @@", "-foo", "+foo bar"].join("\n"));
   const fileB = file("b", "b.ts", ["@@ -1,1 +1,1 @@", " foo baz"].join("\n"));
 
-  test("merges patch and document hits in visible-file order", () => {
-    setFullViewFile("b", true);
-    setDocumentHits("b", [{ fileId: "b", filePath: "b.ts", side: "new", line: 5, range: [0, 3] }]);
+  test("merges every visible file's patch hits in review order", () => {
     setQuery("foo");
     rebuildHits([fileA, fileB]);
     const state = getSearchState();
     expect(state.hits).toEqual([
       { fileId: "a", filePath: "a.ts", side: "old", line: 1, range: [0, 3] },
       { fileId: "a", filePath: "a.ts", side: "new", line: 1, range: [0, 3] },
-      { fileId: "b", filePath: "b.ts", side: "new", line: 5, range: [0, 3] },
+      { fileId: "b", filePath: "b.ts", side: "new", line: 1, range: [0, 3] },
     ]);
     expect(state.currentIndex).toBe(0);
   });
@@ -302,7 +209,6 @@ describe("stepHit", () => {
 
 describe("clearSearch", () => {
   test("resets query/hits/index/prompt but keeps fullViewFileIds", () => {
-    setFullViewFile("f1", true);
     openPrompt("foo");
     setQuery("foo");
     clearSearch();
@@ -311,7 +217,6 @@ describe("clearSearch", () => {
       hits: [],
       currentIndex: -1,
       prompt: { open: false, draft: "" },
-      fullViewFileIds: new Set(["f1"]),
     });
   });
 });
