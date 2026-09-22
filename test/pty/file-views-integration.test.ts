@@ -343,11 +343,13 @@ describe("PTY file views", () => {
       // Assert both hunk-navigation directions immediately from the exact current-file marker.
       await harness.ensureKeyboardIsLive(session);
       session.resize({ cols: 160, rows: 20 });
-      await session.waitForText(/▌ M beta\.ts/, { timeout: 5_000 });
+      // junk: the bundled files pane keeps a viewed-mark column between the selection
+      // stripe and the status glyph, so the marker is not flush against the name.
+      await session.waitForText(/▌\s+M beta\.ts/, { timeout: 5_000 });
       await session.press("[");
-      await session.waitForText(/▌ M alpha\.ts/, { timeout: 10_000 });
+      await session.waitForText(/▌\s+M alpha\.ts/, { timeout: 10_000 });
       await session.press("]");
-      await session.waitForText(/▌ M beta\.ts/, { timeout: 10_000 });
+      await session.waitForText(/▌\s+M beta\.ts/, { timeout: 10_000 });
 
       // Scroll explicitly only after navigation is proven, then load and paint the second file.
       await session.scrollDown(100);
