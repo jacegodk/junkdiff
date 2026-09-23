@@ -47,6 +47,7 @@ import { MenuDropdown } from "./components/chrome/MenuDropdown";
 import { MenuBar } from "./components/chrome/MenuBar";
 import { ConfirmDialog, confirmDialogHeight } from "./components/chrome/ConfirmDialog";
 import { ExtensionDialog } from "./components/chrome/ExtensionDialog";
+import { ReviewPickerDialog } from "./components/chrome/ReviewPickerDialog";
 import { ViewPreferenceQuitDialog } from "./components/chrome/ViewPreferenceQuitDialog";
 import { ExtensionToast } from "./components/chrome/ExtensionToast";
 import { DiffPane, type ReviewSelectionActionsHandle } from "./components/panes/DiffPane";
@@ -150,9 +151,6 @@ const FAST_CODE_HORIZONTAL_SCROLL_COLUMNS = 8;
 
 const LazyAgentSkillDialog = lazy(async () => ({
   default: (await import("./components/chrome/AgentSkillDialog")).AgentSkillDialog,
-}));
-const LazyReviewPickerDialog = lazy(async () => ({
-  default: (await import("./components/chrome/ReviewPickerDialog")).ReviewPickerDialog,
 }));
 const LazyThemeSelectorDialog = lazy(async () => ({
   default: (await import("./components/chrome/ThemeSelectorDialog")).ThemeSelectorDialog,
@@ -1956,19 +1954,17 @@ export function App({
       ) : null}
 
       {reviewPickerOpen && reviewPickerStep ? (
-        <Suspense fallback={null}>
-          <LazyReviewPickerDialog
-            items={reviewPickerItems}
-            selectedIndex={reviewPickerSelectedIndex}
-            step={reviewPickerStep}
-            terminalHeight={terminal.height}
-            terminalWidth={terminal.width}
-            theme={baseTheme}
-            onAcceptItem={acceptReviewPickerItem}
-            onClose={closeReviewPicker}
-            onSelectItem={selectReviewPickerItem}
-          />
-        </Suspense>
+        <ReviewPickerDialog
+          items={reviewPickerItems}
+          selectedIndex={reviewPickerSelectedIndex}
+          step={reviewPickerStep}
+          terminalHeight={terminal.height}
+          terminalWidth={terminal.width}
+          theme={baseTheme}
+          onAcceptItem={acceptReviewPickerItem}
+          onClose={closeReviewPicker}
+          onSelectItem={selectReviewPickerItem}
+        />
       ) : null}
 
       {themeSelectorOpen ? (

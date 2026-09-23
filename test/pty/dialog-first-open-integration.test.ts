@@ -11,6 +11,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const overlays = [
   { name: "help", key: "?", marker: "Controls help" },
   { name: "menu", key: "\x1b[21~", marker: "Toggle files/filter focus" },
+  // Kitty keyboard encoding of ctrl+shift+p; the legacy byte carries no shift bit.
+  { name: "commit picker", key: "\x1b[112;6u", marker: "Pick a commit" },
 ];
 
 /** Create one tracked, changed file without user Git configuration or hooks. */
@@ -30,21 +32,27 @@ function createTestDialogFixture(directory: string) {
     });
     if (result.status !== 0) throw new Error(result.stderr);
   };
-  git(["init", "-q"]);
+  const commit = (message: string) =>
+    git([
+      "-c",
+      "user.name=Hunk Test",
+      "-c",
+      "user.email=test@example.com",
+      "-c",
+      "commit.gpgsign=false",
+      "commit",
+      "-qam",
+      message,
+    ]);
+  git(["init", "-q", "-b", "main"]);
   writeFileSync(join(directory, "example.ts"), "export const value = 1;\n");
   git(["add", "example.ts"]);
-  git([
-    "-c",
-    "user.name=Hunk Test",
-    "-c",
-    "user.email=test@example.com",
-    "-c",
-    "commit.gpgsign=false",
-    "commit",
-    "-qm",
-    "fixture",
-  ]);
+  commit("fixture");
+  // One commit on a branch off the default branch gives the commit picker a list to open.
+  git(["checkout", "-q", "-b", "feature"]);
   writeFileSync(join(directory, "example.ts"), "export const value = 2;\n");
+  commit("feature");
+  writeFileSync(join(directory, "example.ts"), "export const value = 3;\n");
 }
 
 // React act() bypasses the Suspense retry throttle, and the ordinary PTY harness warms up
