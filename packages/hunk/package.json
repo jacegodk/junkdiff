@@ -10,14 +10,11 @@
     "terminal",
     "tui"
   ],
-  "homepage": "https://hunk.dev",
-  "bugs": {
-    "url": "https://github.com/modem-dev/hunk/issues"
-  },
+  "homepage": "https://github.com/jacegodk/junkdiff#readme",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/modem-dev/hunk.git"
+    "url": "git+https://github.com/jacegodk/junkdiff.git"
   },
   "bin": {
     "junk": "./bin/hunk.cjs",

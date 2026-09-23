@@ -1,6 +1,14 @@
 # junkdiff
 
-Personal fork of [hunk](https://github.com/modem-dev/hunk) by Jens Andersen. The binary is `junk`; it shares hunk's config, state and extensions (`~/.config/hunk`, `~/.local/state/hunk`). Branch `main` mirrors upstream, branch `junk` carries the patches. junk ships [hunk-viewed](https://github.com/jacegodk/hunk-viewed) built in (viewed marks, folding, a replacement files pane with collapsible folders, single-file mode, search, keys `V U J K o f3`), keeps review notes across sessions (`h` flags the active note handled, also for agent comments; a note flagged `handled` in its notes file shows as handled, `H` hides and shows handled notes, or they are deleted on open with `delete_handled_notes = true` in config.toml), asks which worktree and base to review when started without a target, lists that review's own commits with `ctrl+shift+P` so one commit can be reviewed alone and left again, shows the selected file whole with `F` and every file with `A`, shows 10 more unchanged lines around the selected hunk with `x` (`X` hides them again, and each collapsed row carries ▼ / ▲ to open it from either end by mouse), and steps the line cursor with the arrow keys while `j`/`k` step only inside the current hunk. Upstream README follows.
+Personal fork of [hunk](https://github.com/modem-dev/hunk) by Jens Andersen, made for my own use. It is not hunk and not affiliated with its authors. I do not take feature requests or issues here; use [hunk](https://github.com/modem-dev/hunk) for that.
+
+Install the Linux x64 binary from [Releases](https://github.com/jacegodk/junkdiff/releases):
+
+```bash
+curl -fsSL -o ~/.local/bin/junk https://github.com/jacegodk/junkdiff/releases/latest/download/junk-linux-x64 && chmod +x ~/.local/bin/junk
+```
+
+The binary is `junk`; it shares hunk's config, state and extensions (`~/.config/hunk`, `~/.local/state/hunk`). Branch `main` mirrors upstream, branch `junk` carries the patches. junk ships [hunk-viewed](https://github.com/jacegodk/hunk-viewed) built in (viewed marks, folding, a replacement files pane with collapsible folders, single-file mode, search, keys `V U J K o f3`), keeps review notes across sessions (`h` flags the active note handled, also for agent comments; a note flagged `handled` in its notes file shows as handled, `H` hides and shows handled notes, or they are deleted on open with `delete_handled_notes = true` in config.toml), asks which worktree and base to review when started without a target, lists that review's own commits with `ctrl+shift+P` so one commit can be reviewed alone and left again, shows the selected file whole with `F` and every file with `A`, shows 10 more unchanged lines around the selected hunk with `x` (`X` hides them again, and each collapsed row carries ▼ / ▲ to open it from either end by mouse), and steps the line cursor with the arrow keys while `j`/`k` step only inside the current hunk. Upstream README follows.
 
 ---
 
