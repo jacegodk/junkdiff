@@ -382,6 +382,7 @@ export function App({
     acceptReviewPickerItem,
     closeReviewPicker,
     moveReviewPicker,
+    openCommitPicker,
     openReviewPicker,
     selectReviewPickerItem,
   } = useReviewPickerController({
@@ -1395,6 +1396,9 @@ export function App({
         moveSelection: review.moveSelection,
         moveNoteCursor: review.moveNoteCursor,
         openAgentSkill,
+        openCommitPicker: () => {
+          openCommitPicker();
+        },
         openReviewPicker: () => {
           openReviewPicker();
         },

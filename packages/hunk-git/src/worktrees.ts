@@ -25,10 +25,30 @@ export interface GitReviewBases {
   upstream: string | null;
 }
 
+/** One commit of the reviewed range, as the commit picker lists it. */
+export interface GitReviewCommit {
+  /** Full object id: the head of this commit's own diff. */
+  revisionId: string;
+  /** Abbreviated object id, for display. */
+  displayId: string;
+  /** First parent, the base of this commit's own diff; the empty tree for a root commit. */
+  parentRevisionId: string;
+  subject: string;
+  authorName: string;
+  /** Author time as a unix time in seconds. */
+  authoredAt: number;
+}
+
 /** Raw stdout of a git command, or null when it fails; porcelain status lines start with a space, so no trim. */
 function gitRaw(cwd: string, ...args: string[]): string | null {
-  const proc = Bun.spawnSync(["git", "-C", cwd, ...args], { stdout: "pipe", stderr: "ignore" });
-  if (proc.exitCode !== 0) return null;
+  let proc: ReturnType<typeof Bun.spawnSync>;
+  try {
+    proc = Bun.spawnSync(["git", "-C", cwd, ...args], { stdout: "pipe", stderr: "ignore" });
+  } catch {
+    // No git on PATH at all reads the same as a command that failed: nothing to offer.
+    return null;
+  }
+  if (proc.exitCode !== 0 || !proc.stdout) return null;
   return Buffer.from(proc.stdout).toString("utf8");
 }
 
@@ -92,6 +112,84 @@ export function resolveGitBranch(cwd: string): string | null {
 /** Whether `cwd` is inside a git working tree; false for a missing path or a bare repository. */
 export function isGitWorktree(cwd: string): boolean {
   return git(cwd, "rev-parse", "--is-inside-work-tree") === "true";
+}
+
+/** Refuse a revision Git could read as an option; every range here comes from Git itself. */
+function isSafeRevision(revision: string): boolean {
+  return revision.length > 0 && !revision.startsWith("-");
+}
+
+/**
+ * The empty tree's object id, which is the base a root commit's diff compares against.
+ *
+ * Asking Git for it rather than hardcoding the well-known SHA-1 digest keeps the SHA-256
+ * repositories right, where the empty tree has a different id.
+ */
+function emptyTreeId(cwd: string): string | null {
+  let proc: ReturnType<typeof Bun.spawnSync>;
+  try {
+    proc = Bun.spawnSync(["git", "-C", cwd, "hash-object", "-t", "tree", "--stdin"], {
+      stdin: new Uint8Array(),
+      stdout: "pipe",
+      stderr: "ignore",
+    });
+  } catch {
+    return null;
+  }
+  if (proc.exitCode !== 0 || !proc.stdout) return null;
+  return Buffer.from(proc.stdout).toString("utf8").trim() || null;
+}
+
+/**
+ * Commits in `range` (`origin/main..HEAD`, say), newest first and bounded by `limit`.
+ *
+ * Empty outside a repository, for an unreadable range, and for a range with no commits. A root
+ * commit is listed only when Git can name the empty tree, since without a base there is no diff
+ * to open.
+ */
+export function listGitReviewCommits(cwd: string, range: string, limit = 200): GitReviewCommit[] {
+  if (!isSafeRevision(range)) return [];
+  const listing = gitRaw(
+    cwd,
+    "log",
+    `--max-count=${Math.max(1, Math.floor(limit))}`,
+    "--no-show-signature",
+    "--no-color",
+    "--abbrev=8",
+    "-z",
+    "--format=%H%x00%h%x00%P%x00%an%x00%ct%x00%s",
+    range,
+  );
+  if (listing === null) return [];
+  const fields = listing.split("\0");
+  // `-z` ends every record with a NUL, so the split leaves one trailing empty field.
+  if (fields.at(-1) === "") fields.pop();
+  const commits: GitReviewCommit[] = [];
+  let emptyTree: string | null | undefined;
+  for (let offset = 0; offset + 6 <= fields.length; offset += 6) {
+    const revisionId = fields[offset]!;
+    const displayId = fields[offset + 1]!;
+    const parents = fields[offset + 2]!.split(" ").filter(Boolean);
+    const authorName = fields[offset + 3]!;
+    const authoredAt = Number(fields[offset + 4]) || 0;
+    const subject = fields[offset + 5]!;
+    if (!revisionId || !displayId) continue;
+    let parentRevisionId = parents[0];
+    if (parentRevisionId === undefined) {
+      emptyTree ??= emptyTreeId(cwd);
+      if (emptyTree === null) continue;
+      parentRevisionId = emptyTree;
+    }
+    commits.push({
+      revisionId,
+      displayId,
+      parentRevisionId,
+      subject: subject || "(no commit message)",
+      authorName: authorName || "Unknown author",
+      authoredAt,
+    });
+  }
+  return commits;
 }
 
 export function resolveGitReviewBases(cwd: string): GitReviewBases {

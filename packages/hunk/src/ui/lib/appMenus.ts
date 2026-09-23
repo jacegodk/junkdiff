@@ -154,6 +154,7 @@ export function buildAppMenus({
       { commandId: "hunk.review.editSelectedFile", label: "Open file in editor" },
       { commandId: "hunk.app.refresh", label: "Reload" },
       { commandId: "hunk.app.openReviewPicker", label: "Pick worktree / base…" },
+      { commandId: "hunk.app.openCommitPicker", label: "Pick a commit…" },
       SEPARATOR,
       { commandId: "hunk.app.quit" },
     ],

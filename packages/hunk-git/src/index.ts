@@ -607,11 +607,13 @@ export function createGitVcsAdapter({
 
 export {
   isGitWorktree,
+  listGitReviewCommits,
   listGitWorktrees,
   resolveGitBranch,
   resolveGitDefaultBranch,
   resolveGitReviewBases,
   type GitReviewBases,
+  type GitReviewCommit,
   type GitWorktree,
 } from "./worktrees";
 

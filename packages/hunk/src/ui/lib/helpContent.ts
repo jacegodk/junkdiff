@@ -149,6 +149,7 @@ const HELP_SECTIONS: readonly HelpSectionSpec[] = [
       { keys: "F10", description: "open menus" },
       { commandIds: ["hunk.app.refresh"], description: "reload the review" },
       { commandIds: ["hunk.app.openReviewPicker"], description: "pick worktree / base" },
+      { commandIds: ["hunk.app.openCommitPicker"], description: "pick a commit of this review" },
       { commandIds: ["hunk.app.toggleHelp"], description: "show this help" },
       { commandIds: ["hunk.app.quit"], description: "quit" },
     ],

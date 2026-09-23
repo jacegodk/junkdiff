@@ -133,6 +133,8 @@ export interface BuildAppCommandsOptions {
   /** Step note selection through the active surface's measured card order. */
   moveNoteCursor: (delta: number) => void;
   openAgentSkill: () => void;
+  /** junk: open the commit list of whatever the review currently covers. */
+  openCommitPicker: () => void;
   openReviewPicker: () => void;
   openThemeSelector: () => void;
   requestQuit: () => void;
@@ -290,6 +292,7 @@ function builtinCommandHandlers(
       run: () => options.triggerRefreshCurrentInput(),
     },
     "hunk.app.openReviewPicker": { run: () => options.openReviewPicker() },
+    "hunk.app.openCommitPicker": { run: () => options.openCommitPicker() },
     "hunk.view.openThemeSelector": { run: () => options.openThemeSelector() },
     "hunk.view.toggleAgentNotes": { run: () => options.toggleAgentNotes() },
     "hunk.view.toggleHandledNotes": { run: () => options.toggleHandledNotes() },
@@ -393,6 +396,7 @@ const NOOP_COMMAND_OPTIONS: BuildAppCommandsOptions = (() => {
     moveSelection: noop,
     moveNoteCursor: noop,
     openAgentSkill: noop,
+    openCommitPicker: noop,
     openReviewPicker: noop,
     openThemeSelector: noop,
     requestQuit: noop,

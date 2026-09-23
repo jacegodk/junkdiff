@@ -48,6 +48,7 @@ function createTestCommands(overrides: Partial<BuildAppCommandsOptions> = {}) {
     moveSelection: record("moveSelection"),
     moveNoteCursor: record("moveNoteCursor"),
     openAgentSkill: record("openAgentSkill"),
+    openCommitPicker: noop,
     openReviewPicker: noop,
     openThemeSelector: noop,
     requestQuit: record("requestQuit"),
@@ -130,6 +131,7 @@ describe("buildAppMenus", () => {
       "Open file in editor",
       "Reload",
       "Pick worktree / base…",
+      "Pick a commit…",
       "Quit",
     ]);
     expect(menus.file?.[0]).toMatchObject({
@@ -175,6 +177,7 @@ describe("buildAppMenus", () => {
       "hunk.review.editSelectedFile",
       "hunk.app.refresh",
       "hunk.app.openReviewPicker",
+      "hunk.app.openCommitPicker",
       "hunk.app.quit",
     ]);
   });
@@ -249,6 +252,7 @@ describe("buildAppMenus", () => {
       "Focus filter",
       "Open file in editor",
       "Pick worktree / base…",
+      "Pick a commit…",
       "Quit",
     ]);
   });

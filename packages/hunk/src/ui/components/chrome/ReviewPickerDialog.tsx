@@ -21,8 +21,9 @@ export function scrollbarThumb(windowStart: number, visibleRows: number, itemCou
 }
 
 /**
- * The two-step picker: which worktree to review, then which base to diff against. The frame
- * grows with the list up to REVIEW_PICKER_MAX_ROWS rows, then the list scrolls behind a scrollbar.
+ * The review picker: which worktree to review, then which base to diff against, and the commit
+ * list that the review's own key opens on its own. The frame grows with the list up to
+ * REVIEW_PICKER_MAX_ROWS rows, then the list scrolls behind a scrollbar.
  */
 export function ReviewPickerDialog({
   items,
@@ -37,7 +38,7 @@ export function ReviewPickerDialog({
 }: {
   items: ReviewPickerItem[];
   selectedIndex: number;
-  step: "worktree" | "base";
+  step: "worktree" | "base" | "commit";
   terminalHeight: number;
   terminalWidth: number;
   theme: AppTheme;
@@ -64,11 +65,18 @@ export function ReviewPickerDialog({
     0,
     bodyWidth - markerWidth - scrollbarWidth - descriptionWidth - (descriptionWidth ? 2 : 0),
   );
-  const title = step === "worktree" ? "Pick a worktree (latest activity first)" : "Diff against";
+  const title =
+    step === "worktree"
+      ? "Pick a worktree (latest activity first)"
+      : step === "commit"
+        ? "Pick a commit (newest first)"
+        : "Diff against";
   const hint =
     step === "worktree"
       ? "Enter/click open  Esc keep this one"
-      : "Enter/click compare  Esc keep the working tree";
+      : step === "commit"
+        ? "Enter/click review that commit alone  Esc keep this review"
+        : "Enter/click compare  Esc keep the working tree";
   const select = (index: number) => onSelectItem(Math.max(0, Math.min(items.length - 1, index)));
 
   return (

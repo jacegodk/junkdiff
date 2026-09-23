@@ -479,6 +479,16 @@ const BUILTIN_COMMANDS = [
     closesMenu: true,
   },
   {
+    // junk: the commits of the current review, opened one at a time.
+    id: "hunk.app.openCommitPicker",
+    title: "Pick a commit to review",
+    category: "app",
+    defaultKeys: ["ctrl+shift+p"],
+    locus: "host-only",
+    publicToExtensions: true,
+    closesMenu: true,
+  },
+  {
     id: "hunk.view.openThemeSelector",
     title: "Choose theme",
     category: "view",

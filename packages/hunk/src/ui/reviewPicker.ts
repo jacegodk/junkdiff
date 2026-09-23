@@ -1,5 +1,5 @@
-import type { GitReviewBases, GitWorktree } from "@hunk/git";
-import { hasExplicitDiffTarget } from "@hunk/vcs/diff-target";
+import type { GitReviewBases, GitReviewCommit, GitWorktree } from "@hunk/git";
+import { describeDiffRange, hasExplicitDiffTarget } from "@hunk/vcs/diff-target";
 import type { CliInput, VcsDiffCommandInput } from "../core/run/commandInputs";
 
 /** One row of the review picker: a worktree or a base to diff against. */
@@ -14,6 +14,17 @@ export interface ReviewPickerItem {
 /** The picker applies to a working-tree review with no explicit target: `junk diff` and nothing else. */
 export function reviewPickerApplies(input: CliInput): input is VcsDiffCommandInput {
   return input.kind === "vcs" && !input.staged && !hasExplicitDiffTarget(input);
+}
+
+/**
+ * Whether a picked worktree or base can replace this review.
+ *
+ * Wider than `reviewPickerApplies`, which decides whether to offer the picker at startup: a
+ * review already narrowed to one base, or to one commit, is exactly the one a reviewer reopens
+ * the picker from, and picking there must still reload.
+ */
+export function reviewPickerCanReload(input: CliInput): input is VcsDiffCommandInput {
+  return input.kind === "vcs" && !input.staged;
 }
 
 /** Compact "3m", "2h", "5d" age for a unix time; "now" under a minute, "" for an unknown time. */
@@ -92,4 +103,82 @@ export function reviewPickerReloadInput(input: VcsDiffCommandInput, base: string
     rangeEndpoints?: unknown;
   };
   return base === null ? (rest as CliInput) : ({ ...rest, range: base } as CliInput);
+}
+
+/** How many commits the commit picker lists at most. */
+export const COMMIT_PICKER_LIMIT = 200;
+
+/** Which commits one review covers, and what it goes back to once a single commit was opened. */
+export interface CommitPickerSource {
+  /** Revision range to list, in Git's `base..head` spelling. */
+  range: string;
+  /** The base this review compared against, so leaving a commit restores it; null is the working tree. */
+  base: string | null;
+  /** How the review reads in the dialog's first row. */
+  label: string;
+}
+
+/**
+ * The commits the current review covers.
+ *
+ * A plain working-tree review covers the commits it has not pushed, falling back to the whole
+ * branch when there is no upstream to compare with; a review against one of those bases covers
+ * exactly that base's commits; an explicit range covers its own. Null when the review has no
+ * branch history behind it, such as a repository with no upstream and no default branch.
+ */
+export function commitPickerSource(
+  input: VcsDiffCommandInput,
+  bases: GitReviewBases,
+): CommitPickerSource | null {
+  const range = describeDiffRange(input);
+  if (range === undefined) {
+    const base = bases.upstream ?? bases.defaultBase;
+    if (!base) return null;
+    return {
+      range: `${base}..HEAD`,
+      base: null,
+      label: "working tree",
+    };
+  }
+  if (range.includes("..")) return { range, base: range, label: `range ${range}` };
+  return { range: `${range}..HEAD`, base: range, label: `working tree vs ${range}` };
+}
+
+/** Rows for the commits of one review, newest first, after the row that leaves a single commit. */
+export function commitPickerItems(
+  source: CommitPickerSource,
+  commits: readonly GitReviewCommit[],
+  nowSeconds: number,
+): ReviewPickerItem[] {
+  return [
+    {
+      id: "review",
+      label: `← back to the ${source.label}`,
+      description: "",
+    },
+    ...commits.map((commit) => ({
+      id: commit.revisionId,
+      label: `${commit.displayId}  ${commit.subject}`,
+      description: formatAge(commit.authoredAt, nowSeconds),
+    })),
+  ];
+}
+
+/** The review of one commit alone: its own parent against itself, keeping every other option. */
+export function commitPickerReloadInput(
+  input: VcsDiffCommandInput,
+  commit: GitReviewCommit,
+): CliInput {
+  const {
+    range: _range,
+    rangeEndpoints: _endpoints,
+    ...rest
+  } = input as VcsDiffCommandInput & {
+    range?: string;
+    rangeEndpoints?: unknown;
+  };
+  return {
+    ...rest,
+    rangeEndpoints: { from: commit.parentRevisionId, to: commit.revisionId },
+  } as CliInput;
 }

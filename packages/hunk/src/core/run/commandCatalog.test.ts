@@ -70,6 +70,7 @@ describe("app command catalog", () => {
       "hunk.app.openAgentSkill",
       "hunk.app.refresh",
       "hunk.app.openReviewPicker",
+      "hunk.app.openCommitPicker",
       "hunk.review.editSelectedFile",
     ]);
   });

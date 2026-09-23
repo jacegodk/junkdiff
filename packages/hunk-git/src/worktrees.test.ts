@@ -2,7 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { listGitWorktrees, resolveGitDefaultBranch, resolveGitReviewBases } from "./worktrees";
+import {
+  listGitReviewCommits,
+  listGitWorktrees,
+  resolveGitDefaultBranch,
+  resolveGitReviewBases,
+} from "./worktrees";
 
 const tempDirs: string[] = [];
 afterEach(() => {
@@ -131,5 +136,56 @@ describe("listGitWorktrees", () => {
     listed = listGitWorktrees(linked);
     expect(listed[0]!.path).toBe(clone);
     expect(listed[0]!.lastActivity).toBe(1_800_000_000);
+  });
+});
+
+describe("listGitReviewCommits", () => {
+  test("lists the range newest first, with each commit's own parent as its base", () => {
+    const { clone } = createRepoWithOrigin();
+    const root = git(clone, "rev-parse", "HEAD");
+    git(clone, "checkout", "-q", "-b", "feat");
+    commit(clone, "b.txt", "b\n", "feat 1", 1_700_000_100);
+    const first = git(clone, "rev-parse", "HEAD");
+    commit(clone, "c.txt", "c\n", "feat 2", 1_700_000_200);
+    const second = git(clone, "rev-parse", "HEAD");
+
+    expect(listGitReviewCommits(clone, `${root}..HEAD`)).toEqual([
+      {
+        revisionId: second,
+        displayId: second.slice(0, 8),
+        parentRevisionId: first,
+        subject: "feat 2",
+        authorName: "t",
+        authoredAt: 1_700_000_200,
+      },
+      {
+        revisionId: first,
+        displayId: first.slice(0, 8),
+        parentRevisionId: root,
+        subject: "feat 1",
+        authorName: "t",
+        authoredAt: 1_700_000_100,
+      },
+    ]);
+  });
+
+  test("a root commit compares against the empty tree", () => {
+    const { clone } = createRepoWithOrigin();
+    const commits = listGitReviewCommits(clone, "HEAD");
+    const emptyTree = git(clone, "hash-object", "-t", "tree", "/dev/null");
+    expect(commits).toHaveLength(1);
+    expect(commits[0]).toMatchObject({ subject: "root", parentRevisionId: emptyTree });
+  });
+
+  test("honours the limit, and gives nothing for an unreadable range or outside a repository", () => {
+    const { clone, base } = createRepoWithOrigin();
+    git(clone, "checkout", "-q", "-b", "feat");
+    commit(clone, "b.txt", "b\n", "feat 1", 1_700_000_100);
+    commit(clone, "c.txt", "c\n", "feat 2", 1_700_000_200);
+
+    expect(listGitReviewCommits(clone, "HEAD", 1).map((c) => c.subject)).toEqual(["feat 2"]);
+    expect(listGitReviewCommits(clone, "no-such-ref..HEAD")).toEqual([]);
+    expect(listGitReviewCommits(clone, "--output=/tmp/pwned")).toEqual([]);
+    expect(listGitReviewCommits(join(base, "nope"), "HEAD")).toEqual([]);
   });
 });

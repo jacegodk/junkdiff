@@ -3,6 +3,9 @@ import type { CliInput } from "../core/run/commandInputs";
 import {
   basePickerItems,
   basePickerSkipNotice,
+  commitPickerItems,
+  commitPickerReloadInput,
+  commitPickerSource,
   formatAge,
   reviewPickerApplies,
   reviewPickerReloadInput,
@@ -146,5 +149,103 @@ describe("reviewPickerReloadInput", () => {
       options: { mode: "split" },
     });
     expect(reviewPickerReloadInput(input as never, null)).toEqual(input);
+  });
+});
+
+describe("commitPickerSource", () => {
+  const bases = {
+    branch: "feat",
+    defaultBranch: "main",
+    defaultBase: "base-sha",
+    upstreamRef: "origin/feat",
+    upstream: "origin/feat",
+  };
+
+  test("a working-tree review covers what it has not pushed, or the whole branch without an upstream", () => {
+    expect(commitPickerSource(workingTree as never, bases)).toEqual({
+      range: "origin/feat..HEAD",
+      base: null,
+      label: "working tree",
+    });
+    expect(commitPickerSource(workingTree as never, { ...bases, upstream: null })).toEqual({
+      range: "base-sha..HEAD",
+      base: null,
+      label: "working tree",
+    });
+  });
+
+  test("a review against a base covers that base's commits, and goes back to that base", () => {
+    const input = { ...workingTree, range: "origin/feat" };
+    expect(commitPickerSource(input as never, bases)).toEqual({
+      range: "origin/feat..HEAD",
+      base: "origin/feat",
+      label: "working tree vs origin/feat",
+    });
+  });
+
+  test("an explicit range covers its own commits", () => {
+    const input = { ...workingTree, range: "v1..v2" };
+    expect(commitPickerSource(input as never, bases)).toEqual({
+      range: "v1..v2",
+      base: "v1..v2",
+      label: "range v1..v2",
+    });
+  });
+
+  test("null when the branch has neither an upstream nor a default branch behind it", () => {
+    expect(
+      commitPickerSource(workingTree as never, {
+        ...bases,
+        defaultBase: null,
+        upstream: null,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("commitPickerItems", () => {
+  const source = { range: "origin/feat..HEAD", base: null, label: "working tree" };
+  const commit = {
+    revisionId: "a".repeat(40),
+    displayId: "aaaaaaaa",
+    parentRevisionId: "b".repeat(40),
+    subject: "first subject",
+    authorName: "t",
+    authoredAt: 1_700_000_000,
+  };
+
+  test("the row that leaves a commit comes first, then one row per commit with its age", () => {
+    expect(commitPickerItems(source, [commit], 1_700_003_600)).toEqual([
+      { id: "review", label: "← back to the working tree", description: "" },
+      { id: "a".repeat(40), label: "aaaaaaaa  first subject", description: "1h" },
+    ]);
+  });
+});
+
+describe("commitPickerReloadInput", () => {
+  test("reviews the commit against its own parent, keeping options and dropping the old range", () => {
+    const input = {
+      kind: "vcs",
+      staged: false,
+      range: "origin/feat",
+      pathspecs: ["src"],
+      options: { mode: "split" },
+    };
+    expect(
+      commitPickerReloadInput(input as never, {
+        revisionId: "a".repeat(40),
+        displayId: "aaaaaaaa",
+        parentRevisionId: "b".repeat(40),
+        subject: "s",
+        authorName: "t",
+        authoredAt: 1,
+      }),
+    ).toEqual({
+      kind: "vcs",
+      staged: false,
+      pathspecs: ["src"],
+      rangeEndpoints: { from: "b".repeat(40), to: "a".repeat(40) },
+      options: { mode: "split" },
+    });
   });
 });

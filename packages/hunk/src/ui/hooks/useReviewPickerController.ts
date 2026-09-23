@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { listGitWorktrees, resolveGitReviewBases } from "@hunk/git";
+import { listGitReviewCommits, listGitWorktrees, resolveGitReviewBases } from "@hunk/git";
+import type { GitReviewCommit } from "@hunk/git";
 import type { AppBootstrap } from "../../core/bootstrap";
 import type { CliInput } from "../../core/run/commandInputs";
 import { resolveCanonicalPath } from "../../core/run/paths";
@@ -7,18 +8,25 @@ import type { ReloadedSessionResult, ReloadSessionOptions } from "../../session/
 import {
   basePickerItems,
   basePickerSkipNotice,
-  reviewPickerApplies,
+  COMMIT_PICKER_LIMIT,
+  commitPickerItems,
+  commitPickerReloadInput,
+  commitPickerSource,
+  reviewPickerCanReload,
   reviewPickerReloadInput,
   worktreePickerItems,
+  type CommitPickerSource,
   type ReviewPickerItem,
 } from "../reviewPicker";
 
 interface ReviewPickerState {
-  step: "worktree" | "base";
+  step: "worktree" | "base" | "commit";
   items: ReviewPickerItem[];
   selectedIndex: number;
   /** The worktree chosen in the first step, or the launch root when that step was skipped. */
   worktree: string;
+  /** Commit step only: the commits its rows stand for, in row order after the first row. */
+  commits?: readonly GitReviewCommit[];
 }
 
 export interface UseReviewPickerControllerOptions {
@@ -54,14 +62,13 @@ export function useReviewPickerController({
   stateRef.current = state;
 
   /**
-   * Reload into `worktree` against `base`. A soft reload (`resetApp: false`) keeps this App
-   * mounted, so the notice explaining a skipped base step survives the switch.
+   * Reload `worktree` into `nextInput`. A soft reload (`resetApp: false`) keeps this App mounted,
+   * so the notice explaining a skipped base step survives the switch.
    */
-  const finish = useCallback(
-    (worktree: string, base: string | null, notice: string | null) => {
+  const reloadInto = useCallback(
+    (worktree: string, nextInput: CliInput, notice: string | null) => {
       setState(null);
-      if (!reviewPickerApplies(bootstrap.input)) return;
-      onReloadSession(reviewPickerReloadInput(bootstrap.input, base), {
+      onReloadSession(nextInput, {
         resetApp: false,
         reason: "manual",
         sourcePath: worktree,
@@ -77,7 +84,17 @@ export function useReviewPickerController({
         },
       );
     },
-    [bootstrap.input, onReloadSession, onTransientNotice, root],
+    [onReloadSession, onTransientNotice, root],
+  );
+
+  /** Finish the base step: review `worktree`'s working tree against `base`. */
+  const finish = useCallback(
+    (worktree: string, base: string | null, notice: string | null) => {
+      setState(null);
+      if (!reviewPickerCanReload(bootstrap.input)) return;
+      reloadInto(worktree, reviewPickerReloadInput(bootstrap.input, base), notice);
+    },
+    [bootstrap.input, reloadInto],
   );
 
   /** Second step for `worktree`: offer the bases, or finish at once (saying why) when there is nothing to choose. */
@@ -123,6 +140,60 @@ export function useReviewPickerController({
     [onTransientNotice, openBaseStep, root],
   );
 
+  /**
+   * The commits of the review the picker last listed for, and the commit it opened from that
+   * list. A review of one commit says nothing about where the list came from, so remembering it
+   * is what lets the same key step from commit to commit and find the way back.
+   */
+  const commitSourceRef = useRef<CommitPickerSource | null>(null);
+  const openedCommitRef = useRef<string | null>(null);
+
+  /** Whether the current review is the single commit this picker opened. */
+  const viewingOpenedCommit = useCallback(() => {
+    const opened = openedCommitRef.current;
+    if (opened === null) return false;
+    const endpoints = (bootstrap.input as { rangeEndpoints?: { to?: string } }).rangeEndpoints;
+    return endpoints?.to === opened;
+  }, [bootstrap.input]);
+
+  /**
+   * Open the commit list for whatever the review currently covers: the unpushed commits of a
+   * working-tree review, the branch's commits when it is compared against the default branch,
+   * and the same list again while one of those commits is open.
+   */
+  const openCommitPicker = useCallback((): boolean => {
+    if (root === null || bootstrap.input.kind !== "vcs") {
+      onTransientNotice("Only a repository review has commits to pick.");
+      return false;
+    }
+    let source = commitSourceRef.current;
+    if (!source || !viewingOpenedCommit()) {
+      source = commitPickerSource(bootstrap.input, resolveGitReviewBases(root));
+      openedCommitRef.current = null;
+    }
+    if (!source) {
+      onTransientNotice("No upstream or default branch to list commits against.");
+      return false;
+    }
+    const commits = listGitReviewCommits(root, source.range, COMMIT_PICKER_LIMIT);
+    if (commits.length === 0) {
+      onTransientNotice(`No commits in ${source.range}`);
+      return false;
+    }
+    commitSourceRef.current = source;
+    const items = commitPickerItems(source, commits, Math.floor(Date.now() / 1000));
+    // Reopening while one commit is up preselects it, so the next Enter steps to the one before.
+    const openedIndex = items.findIndex((item) => item.id === openedCommitRef.current);
+    setState({
+      step: "commit",
+      items,
+      selectedIndex: openedIndex === -1 ? 1 : openedIndex,
+      worktree: root,
+      commits,
+    });
+    return true;
+  }, [bootstrap.input, onTransientNotice, root, viewingOpenedCommit]);
+
   const closeReviewPicker = useCallback(() => setState(null), []);
 
   const moveReviewPicker = useCallback((delta: number) => {
@@ -154,9 +225,22 @@ export function useReviewPickerController({
         openBaseStep(item.id);
         return;
       }
+      if (current.step === "commit") {
+        if (bootstrap.input.kind !== "vcs") return;
+        const commit = current.commits?.find((candidate) => candidate.revisionId === item.id);
+        openedCommitRef.current = commit?.revisionId ?? null;
+        reloadInto(
+          current.worktree,
+          commit
+            ? commitPickerReloadInput(bootstrap.input, commit)
+            : reviewPickerReloadInput(bootstrap.input, commitSourceRef.current?.base ?? null),
+          null,
+        );
+        return;
+      }
       finish(current.worktree, item.base ?? null, null);
     },
-    [finish, openBaseStep],
+    [bootstrap.input, finish, openBaseStep, reloadInto],
   );
 
   return {
@@ -168,6 +252,7 @@ export function useReviewPickerController({
     acceptReviewPickerItem,
     closeReviewPicker,
     moveReviewPicker,
+    openCommitPicker,
     openReviewPicker,
     selectReviewPickerItem,
   };

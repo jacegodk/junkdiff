@@ -54,6 +54,7 @@ function createTestCommands(resolvedKeys?: ResolvedCommandKeys) {
     moveSelection: record("moveSelection"),
     moveNoteCursor: record("moveNoteCursor"),
     openAgentSkill: record("openAgentSkill"),
+    openCommitPicker: record("openCommitPicker"),
     openReviewPicker: record("openReviewPicker"),
     openThemeSelector: record("openThemeSelector"),
     requestQuit: record("requestQuit"),
