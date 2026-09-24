@@ -518,8 +518,8 @@ export function DiffPane({
   const onActiveAddNoteAffordanceChangeRef = useRef(onActiveAddNoteAffordanceChange);
   onActiveAddNoteAffordanceChangeRef.current = onActiveAddNoteAffordanceChange;
 
-  /** Hide hover-only row controls when content scrolls under a stationary mouse pointer. */
-  const clearAddNoteHoverForScroll = useCallback(() => {
+  /** Hide hover-only row controls when content scrolls or terminal focus leaves Hunk. */
+  const clearAddNoteHover = useCallback(() => {
     const hoveredFileId = hoveredFileIdRef.current;
     if (!hoveredFileId) {
       return;
@@ -531,6 +531,13 @@ export function DiffPane({
     hoveredFileIdRef.current = null;
     onActiveAddNoteAffordanceChangeRef.current?.(null);
   }, []);
+
+  useEffect(() => {
+    renderer.on("blur", clearAddNoteHover);
+    return () => {
+      renderer.off("blur", clearAddNoteHover);
+    };
+  }, [clearAddNoteHover, renderer]);
 
   const adjacentPrefetchFileIds = useMemo(
     () => buildAdjacentPrefetchFileIds(files, selectedFileId),
@@ -592,7 +599,7 @@ export function DiffPane({
         return;
       }
 
-      clearAddNoteHoverForScroll();
+      clearAddNoteHover();
 
       if (!scrollBox || wrapLines) {
         return;
@@ -636,7 +643,7 @@ export function DiffPane({
       event.preventDefault();
       event.stopPropagation();
     },
-    [clearAddNoteHoverForScroll, onScrollCodeHorizontally, scrollRef, wrapLines],
+    [clearAddNoteHover, onScrollCodeHorizontally, scrollRef, wrapLines],
   );
 
   const allAgentNotesByFile = useMemo(() => {
@@ -1024,7 +1031,7 @@ export function DiffPane({
         // now sit over a different row, but only an actual mouse move should reveal row actions.
         const previousTop = prevScrollTopRef.current;
         scrollbarRef.current?.show();
-        clearAddNoteHoverForScroll();
+        clearAddNoteHover();
         const rapidOverscanRows = computeRapidScrollOverscanRows({
           deltaRows: nextTop - previousTop,
           viewportHeight: nextHeight,
@@ -1112,14 +1119,7 @@ export function DiffPane({
       scrollBox.verticalScrollBar.off("change", handleViewportChange);
       scrollBox.viewport.off("resize", handleViewportResize);
     };
-  }, [
-    activateRapidScrollOverscan,
-    clearAddNoteHoverForScroll,
-    files.length,
-    height,
-    scrollRef,
-    wrapLines,
-  ]);
+  }, [activateRapidScrollOverscan, clearAddNoteHover, files.length, height, scrollRef, wrapLines]);
 
   const sectionHeaderHeights = useMemo(() => buildInStreamFileHeaderHeights(files), [files]);
   const reserveAddNoteColumn = Boolean(onStartUserNoteAtHunk);
@@ -2675,7 +2675,7 @@ export function DiffPane({
                         }
                         visibleBodyBounds={visibleBodyBoundsByFile.get(file.id)}
                         onHover={() => setHoveredFileForRowActions(file.id)}
-                        onMouseScroll={clearAddNoteHoverForScroll}
+                        onMouseScroll={clearAddNoteHover}
                         onFileViewRowFailure={onFileViewRowFailure}
                         onActiveAddNoteAffordanceChange={
                           onActiveAddNoteAffordanceChange
