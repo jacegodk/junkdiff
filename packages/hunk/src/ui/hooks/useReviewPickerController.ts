@@ -113,8 +113,9 @@ export function useReviewPickerController({
   );
 
   /**
-   * Open the picker. With `onlyIfChoice` (the startup offer) nothing opens, and nothing reloads,
-   * unless there is more than one worktree or more than one base. Returns whether a dialog opened.
+   * Open the picker. With `onlyIfChoice` (the startup offer) a dialog opens only for more than one
+   * worktree or base, and a single base reloads at once unless HEAD is on the default branch.
+   * Returns whether a dialog opened.
    */
   const openReviewPicker = useCallback(
     (options: { onlyIfChoice?: boolean } = {}): boolean => {
@@ -133,7 +134,13 @@ export function useReviewPickerController({
         return true;
       }
       if (options.onlyIfChoice) {
-        return basePickerItems(resolveGitReviewBases(root)).length > 1 && openBaseStep(root);
+        // One base still applies at startup (an unpushed branch opens against the default
+        // branch), except on the default branch itself, where it would only repeat the working tree.
+        const bases = resolveGitReviewBases(root);
+        const items = basePickerItems(bases);
+        if (items.length === 0) return false;
+        if (items.length === 1 && bases.branch === bases.defaultBranch) return false;
+        return openBaseStep(root);
       }
       return openBaseStep(root);
     },

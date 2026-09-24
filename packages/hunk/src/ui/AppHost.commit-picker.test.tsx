@@ -37,7 +37,7 @@ async function waitForFrame(
 
 /**
  * A repository on `feat`, two commits ahead of `main`, with an uncommitted change on top. One
- * worktree and no upstream, so the startup picker never opens over these tests.
+ * worktree and no upstream, so startup opens no dialog and reviews the branch against `main`.
  */
 function createBranchRepo() {
   const dir = realpathSync(mkdtempSync(join(tmpdir(), "hunk-commit-picker-")));
@@ -85,8 +85,9 @@ describe("commit picker", () => {
     const setup = await launch(dir);
 
     try {
-      let frame = await waitForFrame(setup, (f) => f.includes("working"));
-      expect(frame).toContain("working");
+      // Let the startup switch to the whole branch land before the chord.
+      let frame = await waitForFrame(setup, (f) => f.includes("has no upstream"));
+      expect(frame).toContain("+  working");
       expect(frame).not.toContain("Pick a commit");
 
       await act(async () => {
@@ -108,7 +109,7 @@ describe("commit picker", () => {
         await setup.mockInput.pressEnter();
       });
       // That commit's own diff: its line is the change, and the uncommitted line is not in it.
-      frame = await waitForFrame(setup, (f) => !f.includes("working tree"));
+      frame = await waitForFrame(setup, (f) => !f.includes("+  working"));
       expect(frame).toContain("+  second commit line");
       expect(frame).not.toContain("working");
       expect(frame).not.toContain("Pick a commit");
@@ -135,8 +136,8 @@ describe("commit picker", () => {
       await act(async () => {
         await setup.mockInput.pressEnter();
       });
-      frame = await waitForFrame(setup, (f) => f.includes("working tree"));
-      expect(frame).toContain("+  working");
+      frame = await waitForFrame(setup, (f) => f.includes("+  working"));
+      expect(frame).toContain("+  first commit line");
       expect(frame).not.toContain("Pick a commit");
     } finally {
       await act(async () => {

@@ -162,4 +162,32 @@ describe("review picker", () => {
       await removeTestDirectory(dir);
     }
   });
+
+  test("reviews an unpushed branch against the default branch when that is the one base", async () => {
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), "hunk-review-picker-branch-")));
+    const git = (cmd: string) => execSync(cmd, { cwd: dir, stdio: "ignore" });
+    git("git init -q -b main && git config user.email test@test && git config user.name test");
+    writeFileSync(join(dir, "a.txt"), "a\n");
+    git("git add . && git commit -q -m init");
+    // A committed change on a branch with no upstream, and a clean working tree.
+    git("git checkout -q -b feat");
+    writeFileSync(join(dir, "a.txt"), "a\nbranch change\n");
+    git("git commit -q -am feat");
+    const bootstrap = await loadAppBootstrap(
+      { kind: "vcs", staged: false, options: { mode: "unified", excludeUntracked: true } },
+      { cwd: dir, vcsCatalog: getBundledVcsCatalog() },
+    );
+    const setup = await testRender(<AppHost bootstrap={bootstrap} />, { width: 120, height: 20 });
+
+    try {
+      const frame = await waitForFrame(setup, (f) => f.includes("branch change"));
+      expect(frame).toContain("branch change");
+      expect(frame).not.toContain("Diff against");
+    } finally {
+      await act(async () => {
+        setup.renderer.destroy();
+      });
+      await removeTestDirectory(dir);
+    }
+  });
 });
